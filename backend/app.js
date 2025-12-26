@@ -5,7 +5,6 @@ import authRoutes from "./routes/auth.routes.js";
 // import dashboardRoutes from "./routes/dashboard.routes.js";
 import propertyRoutes from "./routes/property.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
-import { supabase } from "./config/supabase.js";
 
 const app = express();
 
