@@ -1,0 +1,25 @@
+.form-container {
+  width: 400px;
+  margin: 60px auto;
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.property-card {
+  background: white;
+  padding: 20px;
+  margin: 20px auto;
+  width: 350px;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.property-card button {
+  margin: 5px;
+}
+
+.update { background: #16a34a; color: white; }
+.delete { background: #dc2626; color: white; }
+.cancel { background: #9ca3af; }
