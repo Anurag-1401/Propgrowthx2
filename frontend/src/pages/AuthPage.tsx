@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Home, User, Lock, UserCogIcon} from "lucide-react";
 
 type Role = "owner" | "tenant";
 
@@ -104,10 +105,16 @@ const AuthPage: React.FC = () => {
   return (
     <div style={styles.container}>
       <form onSubmit={handleSubmit} style={styles.card}>
-        <h2>{isLogin ? "Login" : "Register"}</h2>
+        <div style={{display: "flex",justifyContent: "center",marginBottom: "16px"}}>
+          <Home size={32} color="#2563eb" />
+        </div>
 
+        <h2>{isLogin ? "Login" : "Register"}</h2>
+        <h5>Enter your credentials here</h5>
         {error && <p style={styles.error}>{error}</p>}
 
+        <div style={{display:"flex",gap:10}}>
+        <User/>
         <input
           type="email"
           placeholder="Email"
@@ -116,7 +123,10 @@ const AuthPage: React.FC = () => {
           required
           style={styles.input}
         />
+        </div>
 
+        <div  style={{display:"flex",gap:10}}>
+          <Lock/>
         <input
           type="password"
           placeholder="Password"
@@ -125,7 +135,10 @@ const AuthPage: React.FC = () => {
           required
           style={styles.input}
         />
+        </div>
 
+        {!isLogin && <div style={{display:"flex",gap:10}}>
+          <UserCogIcon/>
         <select
           value={role}
           onChange={(e) => setRole(e.target.value as Role)}
@@ -134,6 +147,7 @@ const AuthPage: React.FC = () => {
           <option value="owner">Owner</option>
           <option value="tenant">Tenant</option>
         </select>
+        </div>}
         <button type="submit" disabled={loading} style={styles.button}>
           {loading ? "Please wait..." : isLogin ? "Login" : "Register"}
         </button>

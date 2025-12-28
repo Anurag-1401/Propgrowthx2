@@ -1,7 +1,8 @@
 import { Route, Routes } from "react-router-dom";
+// import {Login} from "./pages/login_signup";
+import OwnerDashboard from "./pages/owner/OwnerDashboard";
+import TenantDashboard from "./pages/tenant/TenantDashboard";
 import AuthPage from "./pages/AuthPage";
-import OwnerDashboard from "./pages/OwnerDashboard";
-import TenantDashboard from "./pages/TenantDashboard";
 function App() {
   return (
     <Routes>
