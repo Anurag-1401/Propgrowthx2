@@ -1,0 +1,4 @@
+The system supports two primary users: Owner and Tenant, with Manager as an optional role.
+The Owner logs in using email and password with JWT-based authentication.
+After successful login, the system checks whether the Owner has any properties.
+If properties exist, the Owner is redirected to the Dashboard; otherwise, the Owner is redirected to the Onboarding page to add the first property.
