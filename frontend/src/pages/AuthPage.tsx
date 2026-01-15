@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home, User, Lock, UserCogIcon} from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
@@ -21,6 +21,7 @@ const AuthPage: React.FC = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
 
+  const token = sessionStorage.getItem('token')
 
 
    const handleSubmit = async (e: React.FormEvent) => {
@@ -43,10 +44,11 @@ const AuthPage: React.FC = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong");
 
-      sessionStorage.setItem("token", data.token);
-
       if (isLogin) {
-        navigate(role === "owner" ? "/dashboard/owner" : "/dashboard_tenant");
+        sessionStorage.setItem("token", data.token);
+      sessionStorage.setItem("role", data.role);
+      sessionStorage.setItem("id", data.id);
+        navigate(data.role === "owner" ? "/dashboard/owner" : "/dashboard/tenant");
       } else {
         setIsLogin(true);
         setMessage("Registration successful. Please login.");
@@ -137,6 +139,13 @@ const verifyOtp = async () => {
   }
 };
 
+  useEffect(() => {
+      if (token) {
+        navigate('/', { replace: true });
+      }
+    }, [token, navigate]);
+
+    if (token) return null;
 
   return (
   <div className="auth-container">

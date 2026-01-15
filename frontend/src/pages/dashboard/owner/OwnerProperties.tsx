@@ -43,7 +43,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import AddPropertyModal from '@/components/dashboard/AddPropertyModal';
 import EditPropertyModal, { PropertyData } from '@/components/dashboard/EditPropertyModal';
-import DeletePropertyDialog from '../../components/dashboard/DeletePropertyDialog';
+import DeletePropertyDialog from '@/components/dashboard/DeletePropertyDialog';
 import PropertyAnalyticsModal from '@/components/dashboard/PropertyAnalyticsModal';
 import { supabase } from '@/lib/supabase';
 
@@ -63,6 +63,7 @@ const OwnerProperties = () => {
   const [selectedProperty, setSelectedProperty] = useState<ExtendedPropertyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [properties, setProperties] = useState<ExtendedPropertyData[]>([])
+  const id = sessionStorage.getItem('id');
 
    useEffect(() => {
       fetchProperties();
@@ -103,7 +104,7 @@ const fetchProperties = async () => {
        const { data, error } = await supabase 
        .from("properties") 
        .select("*")
-       .eq("owner_id","77e732e6-fd8d-47bd-a0a4-f2df9fc547b2")
+       .eq("owner_id", id)
        .order("created_at", 
         { ascending: false }); 
         
@@ -187,7 +188,7 @@ const fetchProperties = async () => {
     active: properties.filter(p => p.status === 'active').length,
     rented: properties.filter(p => p.status === 'rented').length,
     sold: properties.filter(p => p.status === 'sold').length,
-    totalValue: properties.reduce((sum, p) => sum + (p.property_type === 'For Sale' ? p.price : 0), 0),
+    totalValue: properties.reduce((sum, p) => sum, 0),
   };
 
   return (
@@ -324,13 +325,14 @@ const fetchProperties = async () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead className="w-[300px]">Property</TableHead>
+                      <TableHead className="w-[200px]">Property</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>Price</TableHead>
+                      <TableHead>Rent</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-center">Beds/Baths</TableHead>
+                      <TableHead className="text-center">Rooms/Floors</TableHead>
                       <TableHead className="text-center">Area</TableHead>
-                      <TableHead className="text-center">Views</TableHead>
+                      {/* <TableHead className="text-center">Views</TableHead> */}
                       <TableHead className="text-center">Inquiries</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -339,9 +341,13 @@ const fetchProperties = async () => {
                     {filteredProperties.map((property) => (
                       <TableRow key={property.id} className="hover:bg-muted/30">
                         <TableCell>
-                          <div className="flex items-center gap-4">
+                          <div className="flex flex-col items-center">
                             <img
-                              src={property.images?.[0]}
+                              src={
+                              property.images && property.images.length > 0
+                                ? property.images[0]
+                                : "/placeholder-property.jpg"
+                            }
                               alt={property.property_name}
                               className="w-16 h-12 rounded-lg object-cover"
                             />
@@ -358,10 +364,10 @@ const fetchProperties = async () => {
                         </TableCell>
                         <TableCell>{property.property_type}</TableCell>
                         <TableCell className="font-semibold text-foreground">
-                          {property.price.toLocaleString()}
-                          {/* {property.type !== 'For Sale' && <span className="text-muted-foreground font-normal">/mo</span>} */}
+                          {property.monthly_rent ? property.monthly_rent.toLocaleString() : 0}
+                          {property.listing_type !== 'For Sale' && <span className="text-muted-foreground font-normal">/mo</span>}
                         </TableCell>
-                        <TableCell>{"Active"}</TableCell>
+                        <TableCell>{property.status}</TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
@@ -374,16 +380,27 @@ const fetchProperties = async () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              {property.otherrooms}
+                            </span>
+                            <span>/</span>
+                            <span className="flex items-center gap-1">
+                              {property.floors}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
                           {property.total_area ? property.total_area.toLocaleString() : "0"} sqft
                           </div>
                         </TableCell>
-                        <TableCell className="text-center">
+                        {/* <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-1">
                             <Eye className="w-4 h-4 text-muted-foreground" />
                             {property.views}
                           </div>
-                        </TableCell>
+                        </TableCell> */}
                         <TableCell className="text-center font-medium">
                           {0}
                         </TableCell>

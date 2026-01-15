@@ -395,7 +395,7 @@ const OwnerTransactions = () => {
             <Tabs defaultValue="all" className="space-y-6">
               <TabsList className="bg-card border border-border">
                 <TabsTrigger value="all">All Transactions</TabsTrigger>
-                <TabsTrigger value="rentals">Rent Payments</TabsTrigger>
+                {/* <TabsTrigger value="rentals">Rent Payments</TabsTrigger> */}
               </TabsList>
 
               {/* All Transactions Tab */}
@@ -488,9 +488,7 @@ const OwnerTransactions = () => {
                 }
               </TabsContent>
 
-              {/* Rent Payments Tab */}
-              <TabsContent value="rentals">
-                {/* Overdue Alert */}
+              {/* <TabsContent value="rentals">
                 {stats.overduePayments > 0 && (
                   <div className="bg-destructive/10 border border-destructive/30 rounded-2xl p-4 mb-6">
                     <div className="flex items-center gap-3">
@@ -507,7 +505,6 @@ const OwnerTransactions = () => {
                   </div>
                 )}
 
-                {/* Rental Payments Table */}
                 <div className="bg-card border border-border rounded-2xl overflow-hidden">
                   <div className="overflow-x-auto">
                     <Table>
@@ -603,8 +600,7 @@ const OwnerTransactions = () => {
                   </div>
                 </div>
 
-                {/* Auto-Reminder Info */}
-                {/* <div className="bg-accent border border-border rounded-2xl p-6 mt-6">
+                <div className="bg-accent border border-border rounded-2xl p-6 mt-6">
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center flex-shrink-0">
                       <Bell className="w-6 h-6 text-secondary" />
@@ -631,8 +627,8 @@ const OwnerTransactions = () => {
                       </ul>
                     </div>
                   </div>
-                </div> */}
-              </TabsContent>
+                </div>
+              </TabsContent> */}
             </Tabs>
           </div>
         </div>

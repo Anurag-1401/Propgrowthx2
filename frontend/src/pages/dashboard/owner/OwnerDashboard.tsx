@@ -1,6 +1,6 @@
 import { useState,useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   ArrowRight,
   FileText,
+  LogOut
 } from 'lucide-react';
 import {
   Table,
@@ -33,7 +34,6 @@ import DeletePropertyDialog from '@/components/dashboard/DeletePropertyDialog';
 import PropertyAnalyticsModal from '@/components/dashboard/PropertyAnalyticsModal';
 import { supabase } from '@/lib/supabase';
 
-
 const OwnerDashboard = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -42,6 +42,11 @@ const OwnerDashboard = () => {
   const [selectedProperty, setSelectedProperty] = useState<PropertyData | null>(null);
   const [properties, setProperties] = useState<PropertyData[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  const id = sessionStorage.getItem('id');
+
+
 
   const stats = [
     { label: 'Total Properties', value: '8', icon: Building2, change: '+2 this month' },
@@ -60,7 +65,7 @@ const OwnerDashboard = () => {
     const { data, error } = await supabase
       .from("properties")
       .select("*")
-      .eq("owner_id","77e732e6-fd8d-47bd-a0a4-f2df9fc547b2")
+      .eq("owner_id", id)
       .order("created_at", { ascending: false });
 
     if (!error && data) {
@@ -70,25 +75,6 @@ const OwnerDashboard = () => {
 
     setLoading(false);
   };
-
-//   const fetchProperties = async () => {
-//   setLoading(true);
-
-//   try {
-//     const res = await fetch("http://localhost:5000/api/properties/get_all_prop_by_owner?owner_id=77e732e6-fd8d-47bd-a0a4-f2df9fc547b2");
-//     const json = await res.json();
-
-//     if (res.ok) {
-//       setProperties(json.properties as PropertyData[]);
-//     } else {
-//       console.error("Backend error:", json.error);
-//     }
-//   } catch (err) {
-//     console.error("Fetch failed:", err);
-//   }
-
-//   setLoading(false);
-// };
 
 
   const handleEditClick = (property: PropertyData) => {
@@ -179,6 +165,18 @@ const OwnerDashboard = () => {
                   Manage your properties and track performance
                 </p>
               </div>
+
+              <button className='mr-7 bg-destructive rounded p-1'
+                onClick={()=>{ 
+                  sessionStorage.removeItem('token')
+                  sessionStorage.removeItem('id')
+                  sessionStorage.removeItem('role')
+                  navigate("/auth", { replace: true });
+                }
+              }
+              >
+                <LogOut/>
+              </button>
             </div>
 
             <AddPropertyModal 
@@ -287,9 +285,9 @@ const OwnerDashboard = () => {
                     <TableRow>
                       <TableHead>Property</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>Price</TableHead>
+                      <TableHead>Rent</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Views</TableHead>
+                      {/* <TableHead>Views</TableHead> */}
                       <TableHead>Inquiries</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -309,11 +307,11 @@ const OwnerDashboard = () => {
                         </TableCell>
                         <TableCell>{property.property_type}</TableCell>
                         <TableCell className="font-medium">
-                          {property.price.toLocaleString()}
+                          {property.monthly_rent ? property.monthly_rent.toLocaleString() : 0}
                           {property.listing_type !== 'For Sale' && '/mo'}
                         </TableCell>
-                        <TableCell>{"Active"}</TableCell>
-                        <TableCell>{property.views}</TableCell>
+                        <TableCell>{property.status}</TableCell>
+                        {/* <TableCell>{property.views}</TableCell> */}
                         <TableCell>{0}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">

@@ -6,17 +6,20 @@ import { Button } from '@/components/ui/button';
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const role = sessionStorage.getItem('role');
 
   const navLinks = [
     { name: 'Home', href: '/' },
-    { name: 'About', href: '/about' },
+    { name: 'Manage your properties', href: `/dashboard/${role}` },
+    // { name: 'About', href: '/about' },
     { name: 'Services', href: '/services' },
-    { name: 'Properties', href: '/properties' },
+    // { name: 'Properties', href: '/properties' },
     { name: 'How It Works', href: '/how-it-works' },
-    { name: 'Contact', href: '/contact' },
+    { name: 'Support', href: '/contact' },
+    { name: 'Profile', href: '/profile' },
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path+'/');
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">

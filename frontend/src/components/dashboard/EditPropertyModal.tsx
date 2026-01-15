@@ -37,11 +37,14 @@ const propertySchema = z.object({
   city: z.string().min(2, 'City is required').max(50),
   state: z.string().min(2, 'State is required').max(50),
   zipCode: z.string().min(5, 'Valid zip code required').max(10),
-  type: z.enum(['For Sale', 'For Rent', 'For Lease']),
-  category: z.enum(['Apartment', 'House', 'Condo', 'Townhouse', 'Studio', 'Commercial', 'Penthouse', 'Cabin', 'Villa']),
-  price: z.string().min(1, 'Price is required').refine((val) => !isNaN(Number(val)) && Number(val) > 0, 'Price must be a positive number'),
+  listing_type: z.enum(['For Rent', 'For Lease']),
+  status: z.enum(['available','under maintenance']),
+  property_type: z.enum(['Apartment', 'House', 'Condo', 'Townhouse', 'Studio', 'Commercial', 'Penthouse', 'Cabin', 'Villa']),
+  monthly_rent: z.string().min(1, 'Price is required').refine((val) => !isNaN(Number(val)) && Number(val) > 0, 'Price must be a positive number'),
   bedrooms: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, 'Must be 0 or more'),
   bathrooms: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, 'Must be 0 or more'),
+  otherrooms: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, 'Must be 0 or more'),
+  floors: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, 'Must be 0 or more'),
   area: z.string().min(1, 'Area is required').refine((val) => !isNaN(Number(val)) && Number(val) > 0, 'Area must be a positive number'),
   description: z.string().min(10, 'Description must be at least 20 characters').max(1000),
   amenities: z.string().optional(),
@@ -61,13 +64,13 @@ export interface PropertyData {
 
   listing_type: string;      // "For Sale"
   property_type: string;     // "Apartment"
-  category: string;          // same as property_type (keeping since exists)
 
-  price: number;
   monthly_rent: number | null;
 
   bedrooms: number;
   bathrooms: number;
+  otherrooms: number;
+  floors: number;
   total_area: number;
 
   description: string;
@@ -76,7 +79,6 @@ export interface PropertyData {
   images: string[];
 
   status: string;            // "active"
-  availability_status: string;
 
   water_available: boolean;
   electricity_available: boolean;
@@ -99,8 +101,8 @@ interface EditPropertyModalProps {
 }
 
 const EditPropertyModal = ({ open, onOpenChange, property, onPropertyUpdated }: EditPropertyModalProps) => {
-  const [images, setImages] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const [images, setImages] = useState<string[]>([]);
+const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(propertySchema),
@@ -110,11 +112,14 @@ const EditPropertyModal = ({ open, onOpenChange, property, onPropertyUpdated }: 
       city: '',
       state: '',
       zipCode: '',
-      type: 'For Sale',
-      category: 'Apartment',
-      price: '',
+      listing_type: 'For Rent',
+      property_type: 'Apartment',
+      status:'available',
+      monthly_rent: '',
       bedrooms: '0',
       bathrooms: '1',
+      otherrooms: '1',
+      floors: '1',
       area: '',
       description: '',
       amenities: '',
@@ -131,43 +136,61 @@ const EditPropertyModal = ({ open, onOpenChange, property, onPropertyUpdated }: 
         city: city || '',
         state: state || '',
         zipCode: '00000',
-        type: (property.property_type as 'For Sale' | 'For Rent' | 'For Lease') || 'For Sale',
-        category: (property.category as PropertyFormValues['category']) || 'Apartment',
-        price: property.price?.toString() || '',
+        listing_type: (property.listing_type as 'For Rent' | 'For Lease'),
+        status: (property.status as 'available' | 'under maintenance'),
+        property_type: (property.property_type as PropertyFormValues['property_type']) || 'Apartment',
+        monthly_rent: property.monthly_rent?.toString() || '',
         bedrooms: property.bedrooms?.toString() || '0',
         bathrooms: property.bathrooms?.toString() || '1',
+        otherrooms: property.otherrooms?.toString() || '1',
+        floors: property.floors?.toString() || '1',
         area: property.total_area?.toString() || '',
         description: property.description || 'A wonderful property with great features.',
         amenities: property.amenities?.join(', ') || '',
       });
-      if (property.images) {
-        setImages(property.images);
-      }
+      if (property.images && property.images.length > 0) setImages(property.images);
+      else setImages([]);
+  } else if (!open) {
+    form.reset();
+    setImages([]);
     }
   }, [property, open, form]);
 
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const newImages: string[] = [];
-      Array.from(files).forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target?.result) {
-            newImages.push(event.target.result as string);
-            if (newImages.length === files.length) {
-              setImages((prev) => [...prev, ...newImages].slice(0, 5));
-            }
-          }
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-  };
+  if (!e.target.files) return;
+
+  const files = Array.from(e.target.files);
+
+  files.forEach((file) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = reader.result;
+
+      // ✅ STRICT TYPE GUARD
+      if (typeof result === "string") {
+        setImages((prev) => {
+          const updated: string[] = [...prev, result];
+          return updated.slice(0, 5);
+        });
+      }
+    };
+
+    // ✅ THIS ENSURES BASE64 STRING
+    reader.readAsDataURL(file);
+  });
+
+  e.target.value = "";
+};
+
+
 
   const removeImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
+
+  
 const onSubmit = async (data: PropertyFormValues) => {
   if (!property) return;
 
@@ -176,24 +199,29 @@ const onSubmit = async (data: PropertyFormValues) => {
   const { data: updatedData, error } = await supabase
     .from("properties")
     .update({
+      // owner_id: "77e732e6-fd8d-47bd-a0a4-f2df9fc547b2",
       property_name: data.name,
       address: data.address,
       city: data.city,
       state: data.state,
       zip_code: data.zipCode,
 
-      listing_type: data.type,
-      property_type: data.category,
+      listing_type: data.listing_type,
+      property_type: data.property_type,
 
-      price: Number(data.price),
+      monthly_rent: Number(data.monthly_rent),
       bedrooms: Number(data.bedrooms),
       bathrooms: Number(data.bathrooms),
+      otherrooms:Number(data.otherrooms),
+      floors:Number(data.floors),
       total_area: Number(data.area),
+
+      status: data.status,
 
       description: data.description,
       amenities: data.amenities?.split(",").map(a => a.trim()) || [],
 
-      images: images?.length ? images : [],
+      images: images,
     })
     .eq("id", property.id)
     .select()
@@ -253,7 +281,7 @@ const onSubmit = async (data: PropertyFormValues) => {
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="type"
+                  name="listing_type"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Listing Type</FormLabel>
@@ -264,7 +292,7 @@ const onSubmit = async (data: PropertyFormValues) => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="For Sale">For Sale</SelectItem>
+                          {/* <SelectItem value="For Sale">For Sale</SelectItem> */}
                           <SelectItem value="For Rent">For Rent</SelectItem>
                           <SelectItem value="For Lease">For Lease</SelectItem>
                         </SelectContent>
@@ -276,7 +304,7 @@ const onSubmit = async (data: PropertyFormValues) => {
 
                 <FormField
                   control={form.control}
-                  name="category"
+                  name="property_type"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Property Category</FormLabel>
@@ -302,19 +330,42 @@ const onSubmit = async (data: PropertyFormValues) => {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {/* <SelectItem value="For Sale">For Sale</SelectItem> */}
+                        <SelectItem value="available">Available</SelectItem>
+                        <SelectItem value="under maintenance">Under Maintenance</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               </div>
 
               <FormField
                 control={form.control}
-                name="price"
+                name="monthly_rent"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Price (INR){form.watch('type') !== 'For Sale' ? '(Monthly)' : ''}
+                      Price per Month
                     </FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Input placeholder="850000" className="pl-7" {...field} />
+                        <Input placeholder="850000" className="pl-3" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -438,6 +489,36 @@ const onSubmit = async (data: PropertyFormValues) => {
                 />
               </div>
 
+               <div className="grid grid-cols-3 gap-4">
+                              <FormField
+                                control={form.control}
+                                name="otherrooms"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Other Rooms</FormLabel>
+                                    <FormControl>
+                                      <Input type="number" min="0" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+              
+                              <FormField
+                                control={form.control}
+                                name="floors"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Floors</FormLabel>
+                                    <FormControl>
+                                      <Input type="number" min="0" step="0.5" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+
               <FormField
                 control={form.control}
                 name="description"
@@ -477,42 +558,45 @@ const onSubmit = async (data: PropertyFormValues) => {
                 Property Images
               </h3>
 
-              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-secondary/50 transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="edit-image-upload"
-                />
-                <label htmlFor="edit-image-upload" className="cursor-pointer">
+                <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-secondary/50 transition-colors">
+                  <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                className="hidden"
+                id="image-upload"
+              />
+                <label htmlFor="image-upload" className="cursor-pointer">
                   <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">
                     Click to upload images (max 5)
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    PNG, JPG up to 10MB each
                   </p>
                 </label>
               </div>
 
               {images.length > 0 && (
-                <div className="flex flex-wrap gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                   {images.map((img, index) => (
-                    <div key={index} className="relative group">
+                    <div key={index} className="relative">
                       <img
                         src={img}
-                        alt={`Property ${index + 1}`}
-                        className="w-20 h-20 object-cover rounded-lg"
+                        className="h-32 w-full object-cover rounded-lg"
                       />
                       <button
                         type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() =>removeImage(index)}
+                        className="absolute top-1 right-1 bg-black/70 text-white rounded-full px-2"
                       >
-                        <X className="w-3 h-3" />
+                        ✕
                       </button>
                     </div>
                   ))}
                 </div>
+
               )}
             </div>
 

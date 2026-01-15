@@ -36,13 +36,16 @@ const propertySchema = z.object({
   city: z.string().min(2, 'City is required').max(50),
   state: z.string().min(2, 'State is required').max(50),
   zipCode: z.string().min(5, 'Valid zip code required').max(10),
-  type: z.enum(['For Sale', 'For Rent', 'For Lease']),
-  category: z.enum(['Apartment', 'House', 'Condo', 'Townhouse', 'Studio', 'Commercial', 'Penthouse', 'Cabin', 'Villa']),
-  price: z.string().min(1, 'Price is required').refine((val) => !isNaN(Number(val)) && Number(val) > 0, 'Price must be a positive number'),
+  listing_type: z.enum(['For Rent', 'For Lease']),
+  status: z.enum(['available','under maintenance']),
+  property_type: z.enum(['Apartment', 'House', 'Condo', 'Townhouse', 'Studio', 'Commercial', 'Penthouse', 'Cabin', 'Villa']),
+  monthly_rent: z.string().min(1, 'Price is required').refine((val) => !isNaN(Number(val)) && Number(val) > 0, 'Price must be a positive number'),
   bedrooms: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, 'Must be 0 or more'),
   bathrooms: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, 'Must be 0 or more'),
+  otherrooms: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, 'Must be 0 or more'),
+  floors: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, 'Must be 0 or more'),
   area: z.string().min(1, 'Area is required').refine((val) => !isNaN(Number(val)) && Number(val) > 0, 'Area must be a positive number'),
-  description: z.string().min(10, 'Description must be at least 20 characters').max(1000),
+  description: z.string().min(10, 'Description must be at least 10 characters').max(1000),
   amenities: z.string().optional(),
 });
 
@@ -55,9 +58,9 @@ interface AddPropertyModalProps {
 }
 
 const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyModalProps) => {
-  const ownerId = sessionStorage.getItem('token')
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<(string)[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const id = sessionStorage.getItem('id');
 
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(propertySchema),
@@ -67,63 +70,46 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
       city: '',
       state: '',
       zipCode: '',
-      type: 'For Sale',
-      category: 'Apartment',
-      price: '',
+      listing_type: 'For Rent',
+      property_type: 'Apartment',
+      status:'available',
+      monthly_rent: '',
       bedrooms: '0',
       bathrooms: '1',
+      otherrooms: '1',
+      floors: '1',
       area: '',
       description: '',
       amenities: '',
     },
   });
 
-  // const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const files = e.target.files;
-  //   if (files) {
-  //     const newImages: string[] = [];
-  //     Array.from(files).forEach((file) => {
-  //       const reader = new FileReader();
-  //       reader.onload = (event) => {
-  //         if (event.target?.result) {
-  //           newImages.push(event.target.result as string);
-  //           if (newImages.length === files.length) {
-  //             setImages((prev) => [...prev, ...newImages].slice(0, 5));
-  //           }
-  //         }
-  //       };
-  //       reader.readAsDataURL(file);
-  //     });
-  //   }
-  // };
-
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const files = e.target.files;
-  if (!files) return;
+  if (!e.target.files) return;
 
-  Array.from(files).forEach(async (file) => {
-    const filePath = `images/${Date.now()}_${file.name}`;
+  const files = Array.from(e.target.files);
 
-    const { data, error } = await supabase.storage
-      .from("property-images")
-      .upload(filePath, file, { upsert: true });
+  files.forEach((file) => {
+    const reader = new FileReader();
 
-    if (error) {
-      console.error("Upload failed:", error.message);
-      return;
-    }
+    reader.onload = () => {
+      const result = reader.result;
 
-    // Get public URL
-    const { data: publicData } = supabase.storage
-      .from("property-images")
-      .getPublicUrl(filePath);
+      // ✅ STRICT TYPE GUARD
+      if (typeof result === "string") {
+        setImages((prev) => {
+          const updated: string[] = [...prev, result];
+          return updated.slice(0, 5);
+        });
+      }
+    };
 
-    const url = publicData.publicUrl;
-    setImages((prev) => [...prev, url].slice(0, 5));
+    // ✅ THIS ENSURES BASE64 STRING
+    reader.readAsDataURL(file);
   });
+
+  e.target.value = "";
 };
-
-
 
 
 
@@ -136,34 +122,33 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
   const onSubmit = async (data: PropertyFormValues) => {
   setIsSubmitting(true);
 
-  const imageUrls = images.length > 0 ? images : null;
-
   const { error } = await supabase.from("properties").insert([
   {
-    owner_id: "77e732e6-fd8d-47bd-a0a4-f2df9fc547b2",
+    owner_id: id,
     property_name: data.name,
     address: data.address,
-    city: data.city,
+    city: data.city, 
     state: data.state,
     zip_code: data.zipCode,
 
-    listing_type: data.type,
-    property_type: data.category,
+    listing_type: data.listing_type,
+    property_type: data.property_type,
 
-    price: Number(data.price),
+    monthly_rent: Number(data.monthly_rent),
     bedrooms: Number(data.bedrooms),
     bathrooms: Number(data.bathrooms),
+    otherrooms:Number(data.otherrooms),
+    floors:Number(data.floors),
     total_area: Number(data.area),
 
     description: data.description,
     amenities: data.amenities ? data.amenities.split(",") : [],
 
-    status: "active",
-    images: imageUrls,
+    status: data.status,
+    images: images,
 
     water_available: true,
     electricity_available: true,
-    availability_status: "available",
   },
 ]);
 
@@ -190,80 +175,6 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
 
   setIsSubmitting(false);
 };
-
-// const onSubmit = async (data: PropertyFormValues) => {
-//   try {
-//     setIsSubmitting(true);
-
-//     const token = sessionStorage.getItem("token");
-//     const ownerId = "77e732e6-fd8d-47bd-a0a4-f2df9fc547b2";
-
-//     if (!token || !ownerId) {
-//       throw new Error("User not authenticated");
-//     }
-
-//     const res = await fetch("http://localhost:5000/api/properties/create", {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//         Authorization: `Bearer ${token}`, // ✅ JWT
-//       },
-//       body: JSON.stringify({
-//         owner_id: ownerId,                // UUID from profiles
-//         property_name: data.name,
-//         address: data.address,
-//         city: data.city,
-//         state: data.state,
-//         zip_code: data.zipCode,
-
-//         listing_type: data.type,
-//         property_type: data.category,
-
-//         price: Number(data.price),
-//         bedrooms: Number(data.bedrooms),
-//         bathrooms: Number(data.bathrooms),
-//         total_area: Number(data.area),
-
-//         description: data.description,
-//         amenities: data.amenities
-//           ? data.amenities.split(",").map(a => a.trim())
-//           : [],
-
-//         status: "active",
-//         images: images,                   // array of URLs
-
-//         water_available: true,
-//         electricity_available: true,
-//         availability_status: "available",
-//       }),
-//     });
-
-//     const result = await res.json();
-
-//     if (!res.ok) {
-//       throw new Error(result.error || "Failed to add property");
-//     }
-
-//     toast({
-//       title: "Property Added",
-//       description: `${data.name} is now live`,
-//     });
-
-//     form.reset();
-//     setImages([]);
-//     onOpenChange(false);
-
-//   } catch (err) {
-//     toast({
-//       title: "Error",
-//       description: err.message,
-//       variant: "destructive",
-//     });
-//   } finally {
-//     setIsSubmitting(false);
-//   }
-// };
-
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -300,7 +211,7 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="type"
+                  name="listing_type"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Listing Type</FormLabel>
@@ -311,7 +222,7 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="For Sale">For Sale</SelectItem>
+                          {/* <SelectItem value="For Sale">For Sale</SelectItem> */}
                           <SelectItem value="For Rent">For Rent</SelectItem>
                           <SelectItem value="For Lease">For Lease</SelectItem>
                         </SelectContent>
@@ -323,7 +234,7 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
 
                 <FormField
                   control={form.control}
-                  name="category"
+                  name="property_type"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Property Category</FormLabel>
@@ -349,19 +260,46 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {/* <SelectItem value="For Sale">For Sale</SelectItem> */}
+                          <SelectItem value="available">Available</SelectItem>
+                          <SelectItem value="occupied">Occupied</SelectItem>
+                          <SelectItem value="under maintenance">Under Maintenance</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <FormField
                 control={form.control}
-                name="price"
+                name="monthly_rent"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Price (INR) {form.watch('type') !== 'For Sale' ? '(Monthly)' : ''}
+                      Rent per Month
                     </FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Input placeholder="850000" className="pl-3" {...field} />
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                          ₹
+                        </span>
+                        <Input placeholder="8500" className="pl-7" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -383,7 +321,7 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
                   <FormItem>
                     <FormLabel>Street Address</FormLabel>
                     <FormControl>
-                      <Input placeholder="123 Market Street, Suite 4A" {...field} />
+                      <Input placeholder="Lokmanya Nagar,Panvel" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -398,7 +336,7 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
                     <FormItem>
                       <FormLabel>City</FormLabel>
                       <FormControl>
-                        <Input placeholder="San Francisco" {...field} />
+                        <Input placeholder="Mumbai" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -412,7 +350,7 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
                     <FormItem>
                       <FormLabel>State</FormLabel>
                       <FormControl>
-                        <Input placeholder="CA" {...field} />
+                        <Input placeholder="Maharashtra" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -426,7 +364,7 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
                     <FormItem>
                       <FormLabel>Zip Code</FormLabel>
                       <FormControl>
-                        <Input placeholder="94102" {...field} />
+                        <Input placeholder="4413XX" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -485,6 +423,36 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
                 />
               </div>
 
+              <div className="grid grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="otherrooms"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Other Rooms</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="floors"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Floors</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" step="0.5" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
                 name="description"
@@ -524,15 +492,15 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
                 Property Images
               </h3>
 
-              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-secondary/50 transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="image-upload"
-                />
+                <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-secondary/50 transition-colors">
+                  <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                className="hidden"
+                id="image-upload"
+              />
                 <label htmlFor="image-upload" className="cursor-pointer">
                   <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">
@@ -545,24 +513,24 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
               </div>
 
               {images.length > 0 && (
-                <div className="flex flex-wrap gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                   {images.map((img, index) => (
-                    <div key={index} className="relative group">
+                    <div key={index} className="relative">
                       <img
                         src={img}
-                        alt={`Property ${index + 1}`}
-                        className="w-20 h-20 object-cover rounded-lg"
+                        className="h-32 w-full object-cover rounded-lg"
                       />
                       <button
                         type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() =>removeImage(index)}
+                        className="absolute top-1 right-1 bg-black/70 text-white rounded-full px-2"
                       >
-                        <X className="w-3 h-3" />
+                        ✕
                       </button>
                     </div>
                   ))}
                 </div>
+
               )}
             </div>
 

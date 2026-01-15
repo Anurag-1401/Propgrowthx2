@@ -75,7 +75,7 @@ const DeletePropertyDialog = ({
             <div className="bg-muted rounded-lg p-3 text-sm">
               <p><strong>Location:</strong> {property?.city}</p>
               <p><strong>Type:</strong> {property?.property_type}</p>
-              <p><strong>Price:</strong> ${property?.price?.toLocaleString()}</p>
+              <p><strong>Price:</strong> ${property?.monthly_rent?.toLocaleString()}</p>
             </div>
             <p className="text-destructive font-medium">
               This action cannot be undone. All data associated with this property including inquiries, analytics, and transaction history will be permanently removed.
