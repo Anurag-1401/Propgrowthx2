@@ -1,34 +1,12 @@
-import { useState } from 'react';
-import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
-import Layout from '@/components/layout/Layout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState ,useEffect} from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  ArrowLeft,
-  Plus,
   MessageSquare,
   Clock,
   CheckCircle2,
   AlertCircle,
+  ArrowLeft,
+  Plus,
   Search,
   Filter,
   Home,
@@ -36,28 +14,30 @@ import {
   User,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { z } from 'zod';
+import AddComplaintModal from "@/components/tenant/AddComplaintModal";
+import { Complaint } from '@/components/tenant/AddComplaintModal';
+import { supabase } from '@/lib/supabase';
+import { Helmet } from 'react-helmet-async';
+import { Button } from "@/components/ui/button";
+import { Link } from 'react-router-dom';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import Layout from '@/components/layout/Layout';
 
-const complaintSchema = z.object({
-  property: z.string().min(1, 'Please select a property'),
-  category: z.string().min(1, 'Please select a category'),
-  priority: z.string().min(1, 'Please select priority'),
-  subject: z.string().min(3, 'Subject must be at least 3 characters').max(100, 'Subject must be less than 100 characters'),
-  description: z.string().min(10, 'Description must be at least 10 characters').max(1000, 'Description must be less than 1000 characters'),
-});
 
-interface Complaint {
-  id: number;
-  property: string;
-  category: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  subject: string;
-  description: string;
-  status: 'open' | 'in-progress' | 'resolved' | 'closed';
-  createdAt: string;
-  updatedAt: string;
-  responses: { date: string; message: string; from: string }[];
-}
 
 const TenantComplaints = () => {
   const { toast } = useToast();
@@ -66,118 +46,81 @@ const TenantComplaints = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const tenantId = sessionStorage.getItem("id");
 
-  const [formData, setFormData] = useState({
-    property: '',
-    category: '',
-    priority: '',
-    subject: '',
-    description: '',
-  });
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [complaints, setComplaints] = useState<Complaint[]>([
-    {
-      id: 1,
-      property: 'Urban Loft, Seattle',
-      category: 'Maintenance',
-      priority: 'high',
-      subject: 'Water leakage in bathroom',
-      description: 'There is water leaking from the ceiling in the bathroom. It started yesterday and is getting worse.',
-      status: 'in-progress',
-      createdAt: '2025-01-10',
-      updatedAt: '2025-01-12',
-      responses: [
-        { date: '2025-01-11', message: 'We have scheduled a plumber to visit tomorrow.', from: 'Property Manager' },
-        { date: '2025-01-12', message: 'Plumber visited, issue identified. Repair scheduled for tomorrow.', from: 'Maintenance Team' },
-      ],
-    },
-    {
-      id: 2,
-      property: 'Urban Loft, Seattle',
-      category: 'Appliances',
-      priority: 'medium',
-      subject: 'AC not cooling properly',
-      description: 'The air conditioning unit is running but not cooling the apartment effectively.',
-      status: 'open',
-      createdAt: '2025-01-08',
-      updatedAt: '2025-01-08',
-      responses: [],
-    },
-    {
-      id: 3,
-      property: 'Waterfront Condo, Miami',
-      category: 'Security',
-      priority: 'low',
-      subject: 'Gate access code not working',
-      description: 'The community gate access code has stopped working since last week.',
-      status: 'resolved',
-      createdAt: '2025-01-01',
-      updatedAt: '2025-01-05',
-      responses: [
-        { date: '2025-01-02', message: 'New access code has been sent to your email.', from: 'Security Team' },
-      ],
-    },
-  ]);
+    // {
+    //   id: 1,
+    //   property: 'Urban Loft, Seattle',
+    //   category: 'Maintenance',
+    //   priority: 'high',
+    //   subject: 'Water leakage in bathroom',
+    //   description: 'There is water leaking from the ceiling in the bathroom. It started yesterday and is getting worse.',
+    //   status: 'in-progress',
+    //   createdAt: '2025-01-10',
+    //   updatedAt: '2025-01-12',
+    //   responses: [
+    //     { date: '2025-01-11', message: 'We have scheduled a plumber to visit tomorrow.', from: 'Property Manager' },
+    //     { date: '2025-01-12', message: 'Plumber visited, issue identified. Repair scheduled for tomorrow.', from: 'Maintenance Team' },
+    //   ],
+    // },
+    // {
+    //   id: 2,
+    //   property: 'Urban Loft, Seattle',
+    //   category: 'Appliances',
+    //   priority: 'medium',
+    //   subject: 'AC not cooling properly',
+    //   description: 'The air conditioning unit is running but not cooling the apartment effectively.',
+    //   status: 'open',
+    //   createdAt: '2025-01-08',
+    //   updatedAt: '2025-01-08',
+    //   responses: [],
+    // },
+    // {
+    //   id: 3,
+    //   property: 'Waterfront Condo, Miami',
+    //   category: 'Security',
+    //   priority: 'low',
+    //   subject: 'Gate access code not working',
+    //   description: 'The community gate access code has stopped working since last week.',
+    //   status: 'resolved',
+    //   createdAt: '2025-01-01',
+    //   updatedAt: '2025-01-05',
+    //   responses: [
+    //     { date: '2025-01-02', message: 'New access code has been sent to your email.', from: 'Security Team' },
+    //   ],
+    // },
 
-  const myProperties = [
-    { id: 1, name: 'Urban Loft, Seattle' },
-    { id: 2, name: 'Waterfront Condo, Miami' },
-  ];
 
-  const categories = [
-    'Maintenance',
-    'Appliances',
-    'Plumbing',
-    'Electrical',
-    'Security',
-    'Pest Control',
-    'Noise Complaint',
-    'Other',
-  ];
 
-  const handleInputChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (formErrors[name]) {
-      setFormErrors((prev) => ({ ...prev, [name]: '' }));
-    }
-  };
+  
+    useEffect(() => {
+      fetchComplaints();
+    }, []);
+  
+    const fetchComplaints = async () => {
+  setLoading(true);
 
-  const handleSubmitComplaint = () => {
-    const result = complaintSchema.safeParse(formData);
-    
-    if (!result.success) {
-      const errors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
-        if (err.path[0]) {
-          errors[err.path[0] as string] = err.message;
-        }
-      });
-      setFormErrors(errors);
-      return;
-    }
+  const { data, error } = await supabase
+    .from("complaints")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("created_at", { ascending: false });
 
-    const newComplaint: Complaint = {
-      id: complaints.length + 1,
-      property: formData.property,
-      category: formData.category,
-      priority: formData.priority as Complaint['priority'],
-      subject: formData.subject,
-      description: formData.description,
-      status: 'open',
-      createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0],
-      responses: [],
-    };
-
-    setComplaints((prev) => [newComplaint, ...prev]);
-    setFormData({ property: '', category: '', priority: '', subject: '', description: '' });
-    setFormErrors({});
-    setIsAddModalOpen(false);
+  if (error) {
     toast({
-      title: 'Complaint Submitted',
-      description: 'Your complaint has been submitted successfully. We will respond shortly.',
+      title: "Error fetching complaints",
+      description: error.message,
+      variant: "destructive",
     });
-  };
+  } else {
+    setComplaints(data ?? []);
+  }
+
+  setLoading(false);
+};
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -225,7 +168,7 @@ const TenantComplaints = () => {
   const filteredComplaints = complaints.filter((complaint) => {
     const matchesSearch =
       complaint.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      complaint.property.toLowerCase().includes(searchTerm.toLowerCase());
+      complaint.property_id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || complaint.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -243,6 +186,7 @@ const TenantComplaints = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
               <div className="flex items-center gap-4">
+
                 <Button variant="ghost" size="icon" asChild>
                   <Link to="/dashboard/tenant" replace>
                     <ArrowLeft className="w-5 h-5" />
@@ -253,110 +197,17 @@ const TenantComplaints = () => {
                   <p className="text-muted-foreground">Submit and track your complaints</p>
                 </div>
               </div>
-              <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-secondary hover:bg-secondary/90">
+                  <Button onClick={() => setIsAddModalOpen(true)}
+                    className="bg-secondary hover:bg-secondary/90">
                     <Plus className="w-5 h-5 mr-2" />
                     New Complaint
                   </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-lg">
-                  <DialogHeader>
-                    <DialogTitle>Submit New Complaint</DialogTitle>
-                    <DialogDescription>
-                      Describe your issue and we'll get back to you as soon as possible.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 mt-4">
-                    <div className="space-y-2">
-                      <Label>Property</Label>
-                      <Select value={formData.property} onValueChange={(v) => handleInputChange('property', v)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select property" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {myProperties.map((prop) => (
-                            <SelectItem key={prop.id} value={prop.name}>
-                              {prop.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {formErrors.property && <p className="text-sm text-destructive">{formErrors.property}</p>}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Category</Label>
-                        <Select value={formData.category} onValueChange={(v) => handleInputChange('category', v)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories.map((cat) => (
-                              <SelectItem key={cat} value={cat}>
-                                {cat}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {formErrors.category && <p className="text-sm text-destructive">{formErrors.category}</p>}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Priority</Label>
-                        <Select value={formData.priority} onValueChange={(v) => handleInputChange('priority', v)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select priority" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="low">Low</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="high">High</SelectItem>
-                            <SelectItem value="urgent">Urgent</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {formErrors.priority && <p className="text-sm text-destructive">{formErrors.priority}</p>}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="subject">Subject</Label>
-                      <Input
-                        id="subject"
-                        value={formData.subject}
-                        onChange={(e) => handleInputChange('subject', e.target.value)}
-                        placeholder="Brief description of the issue"
-                        maxLength={100}
-                      />
-                      {formErrors.subject && <p className="text-sm text-destructive">{formErrors.subject}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea
-                        id="description"
-                        value={formData.description}
-                        onChange={(e) => handleInputChange('description', e.target.value)}
-                        placeholder="Provide details about your complaint..."
-                        rows={4}
-                        maxLength={1000}
-                      />
-                      {formErrors.description && <p className="text-sm text-destructive">{formErrors.description}</p>}
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4">
-                      <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button className="bg-secondary hover:bg-secondary/90" onClick={handleSubmitComplaint}>
-                        Submit Complaint
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
             </div>
+
+            <AddComplaintModal
+            open={isAddModalOpen}
+            onOpenChange={setIsAddModalOpen}
+            />
 
             {/* Filters */}
             <div className="bg-card border border-border rounded-2xl p-4 mb-6">
@@ -388,7 +239,7 @@ const TenantComplaints = () => {
 
             {/* Complaints List */}
             <div className="space-y-4">
-              {filteredComplaints.length === 0 ? (
+              {filteredComplaints?.length === 0 ? (
                 <div className="bg-card border border-border rounded-2xl p-12 text-center">
                   <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-foreground mb-2">No complaints found</h3>
@@ -399,7 +250,7 @@ const TenantComplaints = () => {
                   </p>
                 </div>
               ) : (
-                filteredComplaints.map((complaint) => (
+                filteredComplaints?.map((complaint) => (
                   <div
                     key={complaint.id}
                     className="bg-card border border-border rounded-2xl p-6 hover:border-secondary/50 transition-colors cursor-pointer"
@@ -414,7 +265,7 @@ const TenantComplaints = () => {
                           <h3 className="font-semibold text-foreground mb-1">{complaint.subject}</h3>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                             <Home className="w-4 h-4" />
-                            {complaint.property}
+                            {complaint.property_id}
                           </div>
                           <p className="text-sm text-muted-foreground line-clamp-2">{complaint.description}</p>
                           <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -427,7 +278,7 @@ const TenantComplaints = () => {
                       <div className="flex flex-col items-end gap-2 text-sm text-muted-foreground shrink-0">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
-                          {complaint.createdAt}
+                          {complaint.created_at}
                         </div>
                         {complaint.responses.length > 0 && (
                           <div className="flex items-center gap-1 text-secondary">
@@ -453,7 +304,7 @@ const TenantComplaints = () => {
                           <DialogTitle>{selectedComplaint.subject}</DialogTitle>
                           <DialogDescription className="flex items-center gap-2 mt-1">
                             <Home className="w-4 h-4" />
-                            {selectedComplaint.property}
+                            {selectedComplaint.property_id}
                           </DialogDescription>
                         </div>
                       </div>
@@ -473,11 +324,11 @@ const TenantComplaints = () => {
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
-                          Created: {selectedComplaint.createdAt}
+                          Created: {selectedComplaint.created_at}
                         </div>
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          Updated: {selectedComplaint.updatedAt}
+                          Updated: {selectedComplaint.updated_at}
                         </div>
                       </div>
 

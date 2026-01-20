@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -36,13 +36,16 @@ import {
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
+  IndianRupee,
 } from 'lucide-react';
+import PayPaymentModal from '@/components/tenant/PayPaymentModal';
+import { supabase } from '@/lib/supabase';
 
-interface Transaction {
+export interface Transaction {
   id: number;
-  property: string;
-  type: 'rent' | 'purchase' | 'deposit' | 'maintenance' | 'utility';
-  amount: number;
+  property_id: string;
+  type: 'rent' | 'deposit' | 'maintenance';
+  amount: string | number;
   date: string;
   dueDate?: string;
   status: 'completed' | 'pending' | 'overdue' | 'upcoming';
@@ -55,132 +58,63 @@ const TenantTransactions = () => {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('all');
 
-  const transactions: Transaction[] = [
-    // Past transactions
-    {
-      id: 1,
-      property: 'Urban Loft, Seattle',
-      type: 'rent',
-      amount: 2800,
-      date: '2024-12-01',
-      status: 'completed',
-      paymentMethod: 'Credit Card',
-      referenceNo: 'TXN-2024-1201',
-    },
-    {
-      id: 2,
-      property: 'Urban Loft, Seattle',
-      type: 'rent',
-      amount: 2800,
-      date: '2024-11-01',
-      status: 'completed',
-      paymentMethod: 'Bank Transfer',
-      referenceNo: 'TXN-2024-1101',
-    },
-    {
-      id: 3,
-      property: 'Waterfront Condo, Miami',
-      type: 'purchase',
-      amount: 650000,
-      date: '2024-06-15',
-      status: 'completed',
-      paymentMethod: 'Wire Transfer',
-      referenceNo: 'TXN-2024-0615',
-    },
-    {
-      id: 4,
-      property: 'Urban Loft, Seattle',
-      type: 'deposit',
-      amount: 5600,
-      date: '2024-09-01',
-      status: 'completed',
-      paymentMethod: 'Bank Transfer',
-      referenceNo: 'TXN-2024-0901',
-    },
-    {
-      id: 5,
-      property: 'Urban Loft, Seattle',
-      type: 'maintenance',
-      amount: 150,
-      date: '2024-10-15',
-      status: 'completed',
-      paymentMethod: 'Credit Card',
-      referenceNo: 'TXN-2024-1015',
-    },
-    // Current/Pending transactions
-    {
-      id: 6,
-      property: 'Urban Loft, Seattle',
-      type: 'rent',
-      amount: 2800,
-      date: '2025-01-01',
-      dueDate: '2025-01-05',
-      status: 'overdue',
-    },
-    {
-      id: 7,
-      property: 'Urban Loft, Seattle',
-      type: 'utility',
-      amount: 180,
-      date: '2025-01-10',
-      dueDate: '2025-01-15',
-      status: 'pending',
-    },
-    // Future transactions
-    {
-      id: 8,
-      property: 'Urban Loft, Seattle',
-      type: 'rent',
-      amount: 2800,
-      date: '2025-02-01',
-      dueDate: '2025-02-05',
-      status: 'upcoming',
-    },
-    {
-      id: 9,
-      property: 'Urban Loft, Seattle',
-      type: 'rent',
-      amount: 2800,
-      date: '2025-03-01',
-      dueDate: '2025-03-05',
-      status: 'upcoming',
-    },
-    {
-      id: 10,
-      property: 'Urban Loft, Seattle',
-      type: 'rent',
-      amount: 2800,
-      date: '2025-04-01',
-      dueDate: '2025-04-05',
-      status: 'upcoming',
-    },
-  ];
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+useEffect(() => {
+  const fetchTransactions = async () => {
+    const userId = sessionStorage.getItem("id");
+
+    const { data, error } = await supabase
+      .from("payments")
+      .select("*")
+      .eq("user_id", userId)
+      .order("date", { ascending: false });
+
+    if (!error && data) {
+      setTransactions(
+        data.map((p) => ({
+          id: p.id,
+          property_id: p.property_id,
+          type: p.type,
+          amount: p.amount,
+          date: p.date,
+          dueDate: p.due_date,
+          status: p.status,
+          paymentMethod: p.payment_method,
+          referenceNo: p.reference_no,
+        }))
+      );
+    }
+  };
+
+  fetchTransactions();
+}, []);
 
   const stats = [
     {
       label: 'Total Paid (This Year)',
-      value: '$14,150',
+      value: '14,150',
       icon: CheckCircle2,
       color: 'text-success',
       bgColor: 'bg-success/10',
     },
     {
       label: 'Pending Payments',
-      value: '$180',
+      value: '180',
       icon: Clock,
       color: 'text-warning',
       bgColor: 'bg-warning/10',
     },
     {
       label: 'Overdue',
-      value: '$2,800',
+      value: '2,800',
       icon: AlertTriangle,
       color: 'text-destructive',
       bgColor: 'bg-destructive/10',
     },
     {
       label: 'Upcoming (3 months)',
-      value: '$8,400',
+      value: '8,400',
       icon: Calendar,
       color: 'text-secondary',
       bgColor: 'bg-secondary/10',
@@ -222,7 +156,7 @@ const TenantTransactions = () => {
   const filterTransactions = (txns: Transaction[]) => {
     return txns.filter((tx) => {
       const matchesSearch =
-        tx.property.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tx.property_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         tx.referenceNo?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = typeFilter === 'all' || tx.type === typeFilter;
 
@@ -306,7 +240,7 @@ const TenantTransactions = () => {
                     <h3 className="font-semibold text-destructive mb-1">Overdue Payments</h3>
                     <p className="text-sm text-muted-foreground mb-3">
                       You have {overdueTransactions.length} overdue payment{overdueTransactions.length > 1 ? 's' : ''} totaling $
-                      {overdueTransactions.reduce((sum, tx) => sum + tx.amount, 0).toLocaleString()}.
+                      {overdueTransactions.reduce((sum, tx) => sum + Number(tx.amount||0), 0).toLocaleString()}.
                     </p>
                     <Button size="sm" className="bg-destructive hover:bg-destructive/90">
                       <CreditCard className="w-4 h-4 mr-2" />
@@ -329,7 +263,7 @@ const TenantTransactions = () => {
                         <div key={tx.id} className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2">
                             <Home className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">{tx.property}</span>
+                            <span className="text-muted-foreground">{tx.property_id}</span>
                             <span className="text-muted-foreground">•</span>
                             <span className="text-muted-foreground capitalize">{tx.type}</span>
                           </div>
@@ -412,18 +346,48 @@ interface TransactionTableProps {
 }
 
 const TransactionTable = ({ transactions, getStatusBadge, getTypeBadge }: TransactionTableProps) => {
-  if (transactions.length === 0) {
-    return (
+
+  const [payModalOpen, setPayModalOpen] = useState(false);
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+
+  return(
+    <>
+     <PayPaymentModal
+        open={payModalOpen}
+        onOpenChange={setPayModalOpen}
+        transaction={selectedTx}
+      />
+
+  {transactions.length === 0 ? (
+      <div>
       <div className="p-12 text-center">
-        <DollarSign className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+        <IndianRupee className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-foreground mb-2">No transactions found</h3>
         <p className="text-muted-foreground">Try adjusting your filters or search term</p>
       </div>
-    );
-  }
+      <div className='text-center p-12'>
+      <h4 className="text-md font-semibold text-foreground mb-2">Make your 1st Payment</h4>
+      <Button
+        className="bg-secondary hover:bg-secondary/90"
+        onClick={() => {
+          setSelectedTx({
+            id: Date.now(),
+            property_id: "DEFAULT_PROPERTY",
+            type: "rent",
+            amount: 8500,
+            date: new Date().toISOString(),
+            status: "pending",
+          });
+          setPayModalOpen(true);
+        }}
+      >
+        <CreditCard className="w-4 h-4 mr-2" />
+        Pay Rent
+      </Button>
 
-  return (
-    <div className="overflow-x-auto">
+      </div>
+      </div>) : (
+        <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
@@ -443,7 +407,7 @@ const TransactionTable = ({ transactions, getStatusBadge, getTypeBadge }: Transa
               <TableCell>
                 <div className="flex items-center gap-2">
                   <Home className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium text-foreground">{tx.property}</span>
+                  <span className="font-medium text-foreground">{tx.property_id}</span>
                 </div>
               </TableCell>
               <TableCell>{getTypeBadge(tx.type)}</TableCell>
@@ -463,7 +427,11 @@ const TransactionTable = ({ transactions, getStatusBadge, getTypeBadge }: Transa
               <TableCell className="text-muted-foreground text-sm">{tx.referenceNo || '-'}</TableCell>
               <TableCell className="text-right">
                 {(tx.status === 'pending' || tx.status === 'overdue') && (
-                  <Button size="sm" className="bg-secondary hover:bg-secondary/90">
+                  <Button size="sm" className="bg-secondary hover:bg-secondary/90" 
+                  onClick={() => {
+                      setSelectedTx(tx);
+                      setPayModalOpen(true);
+                    }}>
                     Pay Now
                   </Button>
                 )}
@@ -478,7 +446,9 @@ const TransactionTable = ({ transactions, getStatusBadge, getTypeBadge }: Transa
         </TableBody>
       </Table>
     </div>
-  );
+  )}
+  </>
+  )
 };
 
 export default TenantTransactions;
