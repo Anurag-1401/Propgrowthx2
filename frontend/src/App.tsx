@@ -19,24 +19,22 @@ import TenantTransactions from "./pages/dashboard/tenant/TenantTransactions";
 function App() {
   return (
     <HelmetProvider>
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/auth" element={<AuthPage />} />
-      <Route path="/dashboard/owner" element={<OwnerDashboard />} />
-      <Route path="/dashboard/owner/properties" element={<OwnerProperties />} />
-      <Route path="/dashboard/owner/transactions" element={<OwnerTransactions />} />
-
-      <Route path="/dashboard/tenant" element={<TenantDashboard />} /> 
-      <Route path="/dashboard/tenant/complaints" element={<TenantComplaints />} />
-      <Route path="/dashboard/tenant/transactions" element={<TenantTransactions />} />
-      
-      <Route path="/profile" element={<Profile />} /> 
-      <Route path="/properties" element={<Properties />} />
-      <Route path="/services" element={<Services />} />
-      <Route path="/how-it-works" element={<HowItWorks />} />
-      <Route path="/contact" element={<Contact />} />
-      <Route path="*" element={<NotFound />} />  
-    </Routes>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/dashboard/owner" element={<OwnerDashboard />} />
+        <Route path="/dashboard/owner/properties" element={<OwnerProperties />} />
+        <Route path="/dashboard/owner/transactions" element={<OwnerTransactions />} />
+        <Route path="/dashboard/tenant" element={<TenantDashboard />} /> 
+        <Route path="/dashboard/tenant/complaints" element={<TenantComplaints />} />
+        <Route path="/dashboard/tenant/transactions" element={<TenantTransactions />} />
+        <Route path="/profile" element={<Profile />} /> 
+        <Route path="/properties" element={<Properties />} />
+        <Route path="/services" element={<Services />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="*" element={<NotFound />} />  
+      </Routes>
     </HelmetProvider>
   );
 }
