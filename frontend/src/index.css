@@ -1,46 +1,22 @@
-/* Import DM Sans Font */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* Global Reset */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background: #FFFFFF;
-  color: #1F2937;
-}
-
-#root {
+.container-custom {
   width: 100%;
-  min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
+@media (min-width: 640px) {
+  .container-custom {
+    padding: 0 2rem;
+  }
 }
 
-/* Remove default button styles */
-button {
-  font-family: inherit;
-}
-
-/* Ensure images are responsive */
-img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-}
-
-/* Remove link underlines by default */
-a {
-  text-decoration: none;
+@media (min-width: 1024px) {
+  .container-custom {
+    padding: 0 3rem;
+  }
 }

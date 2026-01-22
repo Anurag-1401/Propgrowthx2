@@ -6,6 +6,7 @@ import HowItWorksCards from '../components/landing-page/HowItWorksCards';
 import DigitalTwinShowcase from '../components/landing-page/DigitalTwinShowcase';
 import FinalCTA from '../components/landing-page/FinalCTA';
 import Footer from '../components/landing-page/Footer';
+import '../styles/landingPage.css';
 
 
 
@@ -20,7 +21,7 @@ const Index = () => {
         />
       </Helmet>
 
-      <div style={{ width: '100%' }}>
+      <div className="landing-page" style={{ width: '100%' }}>
         <Navbar />
         <Hero />
         <PainPointsGrid />

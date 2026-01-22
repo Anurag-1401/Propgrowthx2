@@ -1,0 +1,37 @@
+/* Landing Page Styles - Separate from Dashboard */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+/* Landing page specific resets and styles */
+.landing-page * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.landing-page {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #FFFFFF;
+  color: #1F2937;
+  width: 100%;
+}
+
+.landing-page html {
+  scroll-behavior: smooth;
+}
+
+.landing-page button {
+  font-family: inherit;
+}
+
+.landing-page img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.landing-page a {
+  text-decoration: none;
+}
