@@ -59,7 +59,7 @@ export default function Navbar() {
         }}
       >
         <a
-          href="#how-it-works"
+          href="/how-it-works"
           style={{
             fontSize: '15px',
             fontWeight: '500',
@@ -74,7 +74,7 @@ export default function Navbar() {
           How it Works
         </a>
         <a
-          href="#features"
+          href="/properties"
           style={{
             fontSize: '15px',
             fontWeight: '500',
@@ -84,10 +84,10 @@ export default function Navbar() {
             fontFamily: 'DM Sans, sans-serif',
           }}
         >
-          Features
+          Properties
         </a>
         <a
-          href="#pricing"
+          href="/services"
           style={{
             fontSize: '15px',
             fontWeight: '500',
@@ -99,12 +99,13 @@ export default function Navbar() {
           onMouseEnter={(e) => (e.currentTarget.style.color = '#EF4444')}
           onMouseLeave={(e) => (e.currentTarget.style.color = '#1F2937')}
         >
-          Pricing
+          Services
         </a>
       </div>
 
       {/* Join Now Button */}
       <button
+        onClick={() => window.location.href = '/auth'}
         style={{
           background: '#EF4444',
           color: '#FFFFFF',

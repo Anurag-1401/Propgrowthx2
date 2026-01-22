@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import AuthPage from "./pages/AuthPage";
 import Index from "./pages/Index";
+import LandingPage from "./pages/LandingPage";
 import OwnerDashboard from "./pages/dashboard/owner/OwnerDashboard";
 import OwnerProperties from "./pages/dashboard/owner/OwnerProperties";
 import OwnerTransactions from "./pages/dashboard/owner/OwnerTransactions";
@@ -21,6 +22,7 @@ function App() {
     <HelmetProvider>
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/landing" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/dashboard/owner" element={<OwnerDashboard />} />
         <Route path="/dashboard/owner/properties" element={<OwnerProperties />} />

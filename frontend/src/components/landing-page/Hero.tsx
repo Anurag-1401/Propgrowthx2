@@ -12,20 +12,26 @@ export default function Hero() {
     >
       {/* Background Image */}
       <div
+        className="hero-bg"
         style={{
           position: 'absolute',
           inset: 0,
-          zIndex: -1,
+          zIndex: 1,
+          backgroundColor: '#1F2937',
         }}
       >
-        <img
-          src="/hero-bg.jpg"
-          alt="Modern Property Interior"
+        <img 
+          src="/hero-bg.jpg" 
+          alt="Hero Background"
           style={{
             width: '100%',
             height: '100%',
             objectFit: 'cover',
             objectPosition: 'center',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            zIndex: 1,
           }}
         />
         {/* Dark overlay for better text readability */}
@@ -34,6 +40,7 @@ export default function Hero() {
             position: 'absolute',
             inset: 0,
             background: 'linear-gradient(to right, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.15))',
+            zIndex: 2,
           }}
         />
       </div>
@@ -45,11 +52,12 @@ export default function Hero() {
           margin: '0 auto',
           padding: '0 60px',
           width: '100%',
-          zIndex: 1,
+          zIndex: 10,
+          position: 'relative',
         }}
       >
         <div style={{ maxWidth: '850px' }}>
-          {/* Main Heading - EXACT match to Framer */}
+          {/* Main Heading */}
           <h1
             style={{
               fontSize: '72px',
