@@ -35,3 +35,12 @@
 .landing-page a {
   text-decoration: none;
 }
+
+/* Force hero background image to display */
+.landing-page .hero-bg {
+  background-image: url('/hero-bg.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-color: #1F2937 !important;
+}
