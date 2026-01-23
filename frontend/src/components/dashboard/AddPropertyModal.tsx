@@ -38,6 +38,7 @@ const propertySchema = z.object({
   zipCode: z.string().min(5, 'Valid zip code required').max(10),
   listing_type: z.enum(['For Rent', 'For Lease']),
   status: z.enum(['available','under maintenance']),
+  due_date: z.date().optional(),
   property_type: z.enum(['Apartment', 'House', 'Condo', 'Townhouse', 'Studio', 'Commercial', 'Penthouse', 'Cabin', 'Villa']),
   monthly_rent: z.string().min(1, 'Price is required').refine((val) => !isNaN(Number(val)) && Number(val) > 0, 'Price must be a positive number'),
   bedrooms: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, 'Must be 0 or more'),
@@ -73,6 +74,7 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
       listing_type: 'For Rent',
       property_type: 'Apartment',
       status:'available',
+      due_date:new Date(),
       monthly_rent: '',
       bedrooms: '0',
       bathrooms: '1',
@@ -140,6 +142,7 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
     otherrooms:Number(data.otherrooms),
     floors:Number(data.floors),
     total_area: Number(data.area),
+    due_date: data.due_date,
 
     description: data.description,
     amenities: data.amenities ? data.amenities.split(",") : [],
@@ -208,7 +211,7 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
                 )}
               />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="listing_type"
@@ -285,7 +288,8 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
                   )}
                 />
               </div>
-
+              
+              <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="monthly_rent"
@@ -306,6 +310,32 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
                   </FormItem>
                 )}
               />
+
+              <FormField
+              control={form.control}
+              name="due_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Due Date
+                  </FormLabel>
+                  <FormControl>
+                      <Input type="date" placeholder='Enter a date'
+                      value={
+                        field.value ? new Date(field.value).toISOString().split("T")[0] : ""
+                      }
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value ? new Date(e.target.value) : null
+                        )
+                      }
+                      className="pl-3"/>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            </div>
             </div>
 
             {/* Location */}

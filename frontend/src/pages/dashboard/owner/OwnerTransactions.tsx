@@ -44,18 +44,21 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
-interface Transaction {
+export interface Transaction {
+  tenant_id?: string;
+  location?: string;
   id: number;
-  property: string;
-  propertyImage: string;
-  location: string;
-  type: 'sale' | 'rental' | 'lease';
-  amount: number;
+  property_id: string;
+  type: 'rent' | 'deposit' | 'maintenance';
+  amount: string | number;
   date: string;
-  status: 'completed' | 'pending' | 'cancelled';
-  buyer?: string;
-  tenant?: string;
+  due_date?: string;
+  propertyImage?:string;
+  status: 'completed' | 'pending' | 'overdue' | 'upcoming';
+  paymentMethod?: string;
+  referenceNo?: string;
 }
 
 interface RentalPayment {
@@ -78,74 +81,27 @@ const OwnerTransactions = () => {
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  const transactions: Transaction[] = [
-    {
-      id: 1,
-      property: 'Historic Brownstone',
-      propertyImage: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400',
-      location: 'Boston, MA',
-      type: 'sale',
-      amount: 1850000,
-      date: '2024-12-20',
-      status: 'completed',
-      buyer: 'John Smith',
-    },
-    {
-      id: 2,
-      property: 'Luxury Penthouse',
-      propertyImage: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400',
-      location: 'Miami, FL',
-      type: 'sale',
-      amount: 2500000,
-      date: '2024-12-18',
-      status: 'pending',
-      buyer: 'Sarah Johnson',
-    },
-    {
-      id: 3,
-      property: 'Cozy Studio Apartment',
-      propertyImage: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400',
-      location: 'New York, NY',
-      type: 'rental',
-      amount: 3500,
-      date: '2024-12-01',
-      status: 'completed',
-      tenant: 'Michael Chen',
-    },
-    {
-      id: 4,
-      property: 'Mountain Retreat Cabin',
-      propertyImage: 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=400',
-      location: 'Denver, CO',
-      type: 'rental',
-      amount: 2800,
-      date: '2024-11-15',
-      status: 'completed',
-      tenant: 'Emily Davis',
-    },
-    {
-      id: 5,
-      property: 'Commercial Office Space',
-      propertyImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400',
-      location: 'Austin, TX',
-      type: 'lease',
-      amount: 8500,
-      date: '2024-10-01',
-      status: 'completed',
-      tenant: 'TechStart Inc.',
-    },
-    {
-      id: 6,
-      property: 'Waterfront Condo',
-      propertyImage: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400',
-      location: 'Seattle, WA',
-      type: 'rental',
-      amount: 4200,
-      date: '2024-09-20',
-      status: 'completed',
-      tenant: 'David Wilson',
-    },
-  ];
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+  
+
+    useEffect(() => {
+      const fetchTransactions = async () => {
+        const userId = sessionStorage.getItem("id");
+    
+        const { data, error } = await supabase
+          .from("payments")
+          .select("*")
+          .eq("owner_id", userId)
+          .order("date", { ascending: false });
+    
+        if (!error && data) {
+          setTransactions(data as Transaction[]);
+          console.log("Fetched transactions:", data);
+        }
+      };
+    
+      fetchTransactions();
+    }, []);
 
   const rentalPayments: RentalPayment[] = [
     {
@@ -295,18 +251,17 @@ const OwnerTransactions = () => {
   };
 
   const filteredTransactions = transactions.filter((tx) => {
-    const matchesSearch = tx.property.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tx.location.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = tx.property_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tx.type.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || tx.type === filterType;
     const matchesStatus = filterStatus === 'all' || tx.status === filterStatus;
     return matchesSearch && matchesType && matchesStatus;
   });
 
   const stats = {
-    totalRevenue: transactions.filter(t => t.status === 'completed').reduce((sum, t) => sum + t.amount, 0),
-    salesRevenue: transactions.filter(t => t.type === 'sale' && t.status === 'completed').reduce((sum, t) => sum + t.amount, 0),
-    rentalIncome: transactions.filter(t => (t.type === 'rental' || t.type === 'lease') && t.status === 'completed').reduce((sum, t) => sum + t.amount, 0),
-    pendingAmount: transactions.filter(t => t.status === 'pending').reduce((sum, t) => sum + t.amount, 0),
+    totalRevenue: transactions.filter(t => t.status === 'completed').reduce((sum, t) => sum + Number(t.amount), 0),
+    rentalIncome: transactions.filter(t => (t.type === 'rent' || t.type === 'deposit') && t.status === 'completed').reduce((sum, t) => sum + Number(t.amount), 0),
+    pendingAmount: transactions.filter(t => t.status === 'pending').reduce((sum, t) => sum + Number(t.amount), 0),
     overduePayments: payments.filter(p => p.status === 'overdue').length,
     expectedMonthlyRent: payments.reduce((sum, p) => sum + p.monthlyRent, 0),
   };
@@ -458,23 +413,23 @@ const OwnerTransactions = () => {
                             <TableCell>
                               <div className="flex items-center gap-4">
                                 <img
-                                  src={tx.propertyImage}
-                                  alt={tx.property}
+                                  src={tx.propertyImage? tx.propertyImage : '../../../../public/placeholder-property.jpg'}
+                                  alt={tx.property_id}
                                   className="w-16 h-12 rounded-lg object-cover"
                                 />
                                 <div>
-                                  <div className="font-medium text-foreground">{tx.property}</div>
-                                  <div className="text-sm text-muted-foreground">{tx.location}</div>
+                                  <div className="font-medium text-foreground">{tx.property_id}</div>
+                                  <div className="text-sm text-muted-foreground">{tx.location|| ''}</div>
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell>{tx.type}</TableCell>
                             <TableCell className="font-semibold text-foreground">
-                              ${tx.amount.toLocaleString()}
-                              {tx.type !== 'sale' && <span className="text-muted-foreground font-normal">/mo</span>}
+                              ₹{tx.amount.toLocaleString()}
+                              {tx.type === 'rent' && <span className="text-muted-foreground font-normal">/mo</span>}
                             </TableCell>
                             <TableCell className="text-muted-foreground">{tx.date}</TableCell>
-                            <TableCell className="text-foreground">{tx.buyer || tx.tenant}</TableCell>
+                            <TableCell className="text-foreground">{tx.tenant_id}</TableCell>
                             <TableCell>{tx.status}</TableCell>
                           </TableRow>
                         ))}

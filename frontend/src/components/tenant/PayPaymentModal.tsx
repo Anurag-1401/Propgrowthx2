@@ -2,37 +2,68 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { useState } from "react";
-import { Transaction } from "@/pages/dashboard/tenant/TenantTransactions";
+import { useEffect, useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "../ui/input";
 
 interface PayPaymentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  transaction: Transaction | null;
 }
 
 const PayPaymentModal = ({
   open,
   onOpenChange,
-  transaction,
 }: PayPaymentModalProps) => {
   const [loading, setLoading] = useState(false);
   const userId = sessionStorage.getItem("id");
 
-  if (!transaction) return null;
+  const [propertyId, setPropertyId] = useState("");
+  const [type, setType] = useState("rent");
+  const [amount, setAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("UPI");
+
+   const myProperties = [
+    { id: "70040945-305b-471f-936c-a808a0e439c9", name: 'Urban Loft, Seattle' ,monthly_rent:10000.00,due_date:'2026-01-25'},
+    { id: "00000000-0000-0000-0000-000000000111", name: 'Waterfront Condo, Miami' ,monthly_rent:3000.00,due_date:'2026-01-25'},
+  ];
+
+  useEffect(() => {
+  const selected = myProperties.find(p => p.id === propertyId);
+  if (selected) {
+    setAmount(String(selected.monthly_rent));
+  }
+}, [propertyId]);
 
   const handlePay = async () => {
+     if (!propertyId || !amount) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     const { error } = await supabase.from("payments").insert([
       {
-        user_id: userId,
-        property_id: transaction.property_id,
-        type: transaction.type,
-        amount: Number(transaction.amount),
+        tenant_id: userId,
+        owner_id:"77e732e6-fd8d-47bd-a0a4-f2df9fc547b2",
+        property_id: propertyId,
+        type: type,
+        amount: Number(amount),
         status: "completed",
         date: new Date().toISOString(),
         payment_method: "UPI",
+        due_date: myProperties.find(p => p.id === propertyId)?.due_date || null,
         reference_no: `TXN-${Date.now()}`,
       },
     ]);
@@ -63,17 +94,52 @@ const PayPaymentModal = ({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="text-sm text-muted-foreground">
-            Property: <span className="text-foreground">{transaction.property_id}</span>
-          </div>
+          <label htmlFor="Select Property"></label>
+          <Select value={propertyId} onValueChange={setPropertyId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a property" />
+            </SelectTrigger>
+          <SelectContent>
+            {myProperties.map((property) => (
+              <SelectItem key={property.id} value={property.id.toString()}>
+                {property.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <div className="text-sm text-muted-foreground">
-            Type: <span className="capitalize text-foreground">{transaction.type}</span>
-          </div>
+          <label htmlFor="Payment Type"></label>
+          <Select value={type} onValueChange={setType}>
+            <SelectTrigger>
+              <SelectValue placeholder="Payment Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="rent">Rent</SelectItem>
+              <SelectItem value="deposit">Deposit</SelectItem>
+              <SelectItem value="maintenance">Maintenance</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <div className="text-xl font-bold text-foreground">
-            ₹{Number(transaction.amount).toLocaleString()}
-          </div>
+          <label htmlFor="Amount"></label>
+          <Input
+            type="number"
+            placeholder="Amount"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+          
+          <label htmlFor="Payment Method"></label>
+           <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+            <SelectTrigger>
+              <SelectValue placeholder="Payment Method" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="UPI">UPI</SelectItem>
+              <SelectItem value="Card">Card</SelectItem>
+              <SelectItem value="NetBanking">Net Banking</SelectItem>
+              <SelectItem value="Cash">Cash</SelectItem>
+            </SelectContent>
+          </Select>
 
           <Button
             onClick={handlePay}

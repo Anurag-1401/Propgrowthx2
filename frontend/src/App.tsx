@@ -2,7 +2,6 @@ import { Route, Routes } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import AuthPage from "./pages/AuthPage";
 import Index from "./pages/Index";
-import LandingPage from "./pages/LandingPage";
 import OwnerDashboard from "./pages/dashboard/owner/OwnerDashboard";
 import OwnerProperties from "./pages/dashboard/owner/OwnerProperties";
 import OwnerTransactions from "./pages/dashboard/owner/OwnerTransactions";
@@ -15,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import TenantComplaints from "./pages/dashboard/tenant/TenantComplaints";
 import TenantTransactions from "./pages/dashboard/tenant/TenantTransactions";
+import OwnerComplaints from "./pages/dashboard/owner/OwnerComplaints";
 
 
 function App() {
@@ -22,7 +22,6 @@ function App() {
     <HelmetProvider>
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/landing" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/dashboard/owner" element={<OwnerDashboard />} />
         <Route path="/dashboard/owner/properties" element={<OwnerProperties />} />
@@ -30,6 +29,7 @@ function App() {
         <Route path="/dashboard/tenant" element={<TenantDashboard />} /> 
         <Route path="/dashboard/tenant/complaints" element={<TenantComplaints />} />
         <Route path="/dashboard/tenant/transactions" element={<TenantTransactions />} />
+        <Route path="/dashboard/owner/complaints" element={<OwnerComplaints />} />
         <Route path="/profile" element={<Profile />} /> 
         <Route path="/properties" element={<Properties />} />
         <Route path="/services" element={<Services />} />
