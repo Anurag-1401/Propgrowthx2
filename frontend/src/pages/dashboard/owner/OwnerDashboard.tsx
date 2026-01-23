@@ -17,7 +17,8 @@ import {
   CheckCircle2,
   ArrowRight,
   FileText,
-  LogOut
+  LogOut,
+  MessageSquare
 } from 'lucide-react';
 import {
   Table,
@@ -165,18 +166,6 @@ const OwnerDashboard = () => {
                   Manage your properties and track performance
                 </p>
               </div>
-
-              <button className='mr-7 bg-destructive rounded p-1'
-                onClick={()=>{ 
-                  sessionStorage.removeItem('token')
-                  sessionStorage.removeItem('id')
-                  sessionStorage.removeItem('role')
-                  navigate("/auth", { replace: true });
-                }
-              }
-              >
-                <LogOut/>
-              </button>
             </div>
 
             <AddPropertyModal 
@@ -236,6 +225,23 @@ const OwnerDashboard = () => {
                     <div>
                       <h3 className="font-semibold text-foreground">Transactions & Payments</h3>
                       <p className="text-sm text-muted-foreground">Track sales, rentals & rent payments</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-secondary transition-colors" />
+                </div>
+              </Link>
+              <Link
+                to="/dashboard/owner/complaints"
+                className="bg-card border border-border rounded-2xl p-6 hover:border-secondary/50 hover:shadow-lg transition-all group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center group-hover:bg-secondary/20 transition-colors">
+                      <MessageSquare className="w-6 h-6 text-primary group-hover:text-secondary transition-colors" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">Complaints</h3>
+                      <p className="text-sm text-muted-foreground">Manage tenant complaints</p>
                     </div>
                   </div>
                   <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-secondary transition-colors" />

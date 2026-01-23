@@ -25,7 +25,6 @@ import {
   ArrowLeft,
   Search,
   Filter,
-  DollarSign,
   Calendar,
   Home,
   Clock,
@@ -47,7 +46,7 @@ export interface Transaction {
   type: 'rent' | 'deposit' | 'maintenance';
   amount: string | number;
   date: string;
-  dueDate?: string;
+  due_date?: string;
   status: 'completed' | 'pending' | 'overdue' | 'upcoming';
   paymentMethod?: string;
   referenceNo?: string;
@@ -60,6 +59,50 @@ const TenantTransactions = () => {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
+  const addMonths = (date: Date, months: number) => {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
+};
+
+const formatDate = (d: Date) => d.toISOString().split("T")[0];
+
+const today = new Date();
+
+const completedRentByProperty = transactions
+  .filter(tx => tx.type === "rent" && tx.status === "completed")
+  .reduce<Record<string, Transaction[]>>((acc, tx) => {
+    acc[tx.property_id] ||= [];
+    acc[tx.property_id].push(tx);
+    return acc;
+  }, {});
+
+const derivedRentTransactions: Transaction[] = [];
+
+Object.entries(completedRentByProperty).forEach(([propertyId, rents]) => {
+  const lastPaid = rents
+    .map(r => new Date(r.date))
+    .sort((a, b) => b.getTime() - a.getTime())[0];
+
+  for (let i = 1; i <= 3; i++) {
+    const due = addMonths(lastPaid, i);
+
+    derivedRentTransactions.push({
+      id: Number(`999${propertyId.slice(0, 3)}${i}`),
+      property_id: propertyId,
+      type: "rent",
+      amount: rents[0].amount,
+      date: formatDate(due),
+      due_date: formatDate(due),
+      status:
+        due < today
+          ? "overdue"
+          : "upcoming",
+    });
+  }
+});
+
+
 useEffect(() => {
   const fetchTransactions = async () => {
     const userId = sessionStorage.getItem("id");
@@ -67,7 +110,7 @@ useEffect(() => {
     const { data, error } = await supabase
       .from("payments")
       .select("*")
-      .eq("user_id", userId)
+      .eq("tenant_id", userId)
       .order("date", { ascending: false });
 
     if (!error && data) {
@@ -78,48 +121,157 @@ useEffect(() => {
           type: p.type,
           amount: p.amount,
           date: p.date,
-          dueDate: p.due_date,
+          due_date: p.due_date,
           status: p.status,
           paymentMethod: p.payment_method,
           referenceNo: p.reference_no,
         }))
       );
+      console.log("Fetched transactions:", data);
     }
   };
 
   fetchTransactions();
 }, []);
 
-  const stats = [
-    {
-      label: 'Total Paid (This Year)',
-      value: '14,150',
-      icon: CheckCircle2,
-      color: 'text-success',
-      bgColor: 'bg-success/10',
-    },
-    {
-      label: 'Pending Payments',
-      value: '180',
-      icon: Clock,
-      color: 'text-warning',
-      bgColor: 'bg-warning/10',
-    },
-    {
-      label: 'Overdue',
-      value: '2,800',
-      icon: AlertTriangle,
-      color: 'text-destructive',
-      bgColor: 'bg-destructive/10',
-    },
-    {
-      label: 'Upcoming (3 months)',
-      value: '8,400',
-      icon: Calendar,
-      color: 'text-secondary',
-      bgColor: 'bg-secondary/10',
-    },
-  ];
+ const filterTransactions = (txns: Transaction[]) => {
+    return txns.filter((tx) => {
+      const matchesSearch =
+        tx.property_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tx.referenceNo?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = typeFilter === 'all' || tx.type === typeFilter;
+
+      return matchesSearch && matchesType;
+    });
+  };
+
+  const now = new Date();
+const currentMonth = now.getMonth();
+const currentYear = now.getFullYear();
+
+const prevMonthDate = new Date(currentYear, currentMonth - 1, 1);
+const prevMonth = prevMonthDate.getMonth();
+const prevYear = prevMonthDate.getFullYear();
+
+const nextMonth = new Date(currentYear, currentMonth + 1, 1);
+
+
+const allTransactions: Transaction[] = [
+  ...transactions,
+  ...derivedRentTransactions.filter(
+    dt =>
+      !transactions.some(
+        t =>
+          t.type === "rent" &&
+          t.property_id === dt.property_id &&
+          t.due_date === dt.due_date
+      )
+  ),
+];
+
+const pastTabTransactions = allTransactions.filter(tx => {
+  if (tx.status !== "completed") return false;
+
+  const txDate = new Date(tx.date);
+
+  return (
+    txDate.getMonth() === prevMonth &&
+    txDate.getFullYear() === prevYear
+  );
+});
+
+
+const currentTabTransactions = allTransactions.filter(tx => {
+  const baseDate = tx.due_date ? new Date(tx.due_date) : new Date(tx.date);
+
+  return (
+    baseDate.getMonth() === currentMonth &&
+    baseDate.getFullYear() === currentYear &&
+    ["completed", "pending", "overdue"].includes(tx.status)
+  );
+});
+
+
+const upcomingTabTransactions = allTransactions.filter(tx => {
+  if (!tx.due_date) return false;
+  const due = new Date(tx.due_date);
+  return (
+    tx.status === "upcoming" &&
+    due.getMonth() === nextMonth.getMonth() &&
+    due.getFullYear() === nextMonth.getFullYear()
+  );
+});
+
+ const allTabTransactions = [
+  ...pastTabTransactions,
+  ...currentTabTransactions,
+  ...upcomingTabTransactions,
+];
+
+const overdueTransactions = allTransactions.filter(tx => tx.status === "overdue");
+
+const upcomingTransactions = allTransactions
+  .filter(tx => tx.status === "upcoming")
+  .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime())
+  .slice(0, 3);
+
+const toNumber = (v: string | number | undefined) =>
+  Number(v || 0);
+
+const totalPaidThisYear = allTransactions
+  .filter(
+    (tx) =>
+      tx.status === "completed" &&
+      new Date(tx.date).getFullYear() === currentYear
+  )
+  .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
+
+const pendingPayments = allTransactions
+  .filter((tx) => tx.status === "pending")
+  .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
+
+const overduePayments = allTransactions
+  .filter((tx) => tx.status === "overdue")
+  .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
+
+  const upcomingPayments = allTransactions
+  .filter((tx) => tx.status === "upcoming")
+  .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
+
+const threeMonthsFromNow = new Date();
+threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
+
+ const stats = [
+  {
+    label: "Total Paid (This Year)",
+    value: `₹${totalPaidThisYear.toLocaleString()}`,
+    icon: CheckCircle2,
+    color: "text-success",
+    bgColor: "bg-success/10",
+  },
+  {
+    label: "Pending Payments",
+    value: `₹${pendingPayments.toLocaleString()}`,
+    icon: Clock,
+    color: "text-warning",
+    bgColor: "bg-warning/10",
+  },
+  {
+    label: "Overdue",
+    value: `₹${overduePayments.toLocaleString()}`,
+    icon: AlertTriangle,
+    color: "text-destructive",
+    bgColor: "bg-destructive/10",
+  },
+  {
+    label: "Upcoming (3 months)",
+    value: `₹${upcomingPayments.toLocaleString()}`,
+    icon: Calendar,
+    color: "text-secondary",
+    bgColor: "bg-secondary/10",
+  },
+];
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -152,38 +304,6 @@ useEffect(() => {
         return <Badge variant="outline">{type}</Badge>;
     }
   };
-
-  const filterTransactions = (txns: Transaction[]) => {
-    return txns.filter((tx) => {
-      const matchesSearch =
-        tx.property_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tx.referenceNo?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesType = typeFilter === 'all' || tx.type === typeFilter;
-
-      let matchesTab = true;
-      const today = new Date();
-      const txDate = new Date(tx.date);
-
-      switch (activeTab) {
-        case 'past':
-          matchesTab = tx.status === 'completed';
-          break;
-        case 'current':
-          matchesTab = tx.status === 'pending' || tx.status === 'overdue';
-          break;
-        case 'upcoming':
-          matchesTab = tx.status === 'upcoming';
-          break;
-      }
-
-      return matchesSearch && matchesType && matchesTab;
-    });
-  };
-
-  const filteredTransactions = filterTransactions(transactions);
-
-  const overdueTransactions = transactions.filter((tx) => tx.status === 'overdue');
-  const upcomingTransactions = transactions.filter((tx) => tx.status === 'upcoming').slice(0, 3);
 
   return (
     <>
@@ -239,7 +359,7 @@ useEffect(() => {
                   <div className="flex-1">
                     <h3 className="font-semibold text-destructive mb-1">Overdue Payments</h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      You have {overdueTransactions.length} overdue payment{overdueTransactions.length > 1 ? 's' : ''} totaling $
+                      You have {overdueTransactions.length} overdue payment{overdueTransactions.length > 1 ? 's' : ''} totaling ₹
                       {overdueTransactions.reduce((sum, tx) => sum + Number(tx.amount||0), 0).toLocaleString()}.
                     </p>
                     <Button size="sm" className="bg-destructive hover:bg-destructive/90">
@@ -268,8 +388,8 @@ useEffect(() => {
                             <span className="text-muted-foreground capitalize">{tx.type}</span>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="text-foreground font-medium">${tx.amount.toLocaleString()}</span>
-                            <span className="text-muted-foreground">Due: {tx.dueDate}</span>
+                            <span className="text-foreground font-medium">₹{tx.amount.toLocaleString()}</span>
+                            <span className="text-muted-foreground">Due: {tx.due_date?.split('T')[0] || '-'}</span>
                           </div>
                         </div>
                       ))}
@@ -318,18 +438,38 @@ useEffect(() => {
                   </div>
                 </div>
 
-                <TabsContent value="all" className="m-0">
-                  <TransactionTable transactions={filterTransactions(transactions)} getStatusBadge={getStatusBadge} getTypeBadge={getTypeBadge} />
-                </TabsContent>
-                <TabsContent value="past" className="m-0">
-                  <TransactionTable transactions={filteredTransactions} getStatusBadge={getStatusBadge} getTypeBadge={getTypeBadge} />
-                </TabsContent>
-                <TabsContent value="current" className="m-0">
-                  <TransactionTable transactions={filteredTransactions} getStatusBadge={getStatusBadge} getTypeBadge={getTypeBadge} />
-                </TabsContent>
-                <TabsContent value="upcoming" className="m-0">
-                  <TransactionTable transactions={filteredTransactions} getStatusBadge={getStatusBadge} getTypeBadge={getTypeBadge} />
-                </TabsContent>
+                <TabsContent value="all">
+                <TransactionTable
+                  transactions={filterTransactions(allTabTransactions)}
+                  getStatusBadge={getStatusBadge}
+                  getTypeBadge={getTypeBadge}
+                />
+              </TabsContent>
+
+              <TabsContent value="past">
+                <TransactionTable
+                  transactions={filterTransactions(pastTabTransactions)}
+                  getStatusBadge={getStatusBadge}
+                  getTypeBadge={getTypeBadge}
+                />
+              </TabsContent>
+
+              <TabsContent value="current">
+                <TransactionTable
+                  transactions={filterTransactions(currentTabTransactions)}
+                  getStatusBadge={getStatusBadge}
+                  getTypeBadge={getTypeBadge}
+                />
+              </TabsContent>
+
+              <TabsContent value="upcoming">
+                <TransactionTable
+                  transactions={filterTransactions(upcomingTabTransactions)}
+                  getStatusBadge={getStatusBadge}
+                  getTypeBadge={getTypeBadge}
+                />
+              </TabsContent>
+
               </Tabs>
             </div>
           </div>
@@ -355,7 +495,6 @@ const TransactionTable = ({ transactions, getStatusBadge, getTypeBadge }: Transa
      <PayPaymentModal
         open={payModalOpen}
         onOpenChange={setPayModalOpen}
-        transaction={selectedTx}
       />
 
   {transactions.length === 0 ? (
@@ -369,17 +508,7 @@ const TransactionTable = ({ transactions, getStatusBadge, getTypeBadge }: Transa
       <h4 className="text-md font-semibold text-foreground mb-2">Make your 1st Payment</h4>
       <Button
         className="bg-secondary hover:bg-secondary/90"
-        onClick={() => {
-          setSelectedTx({
-            id: Date.now(),
-            property_id: "DEFAULT_PROPERTY",
-            type: "rent",
-            amount: 8500,
-            date: new Date().toISOString(),
-            status: "pending",
-          });
-          setPayModalOpen(true);
-        }}
+        onClick={() => setPayModalOpen(true)}
       >
         <CreditCard className="w-4 h-4 mr-2" />
         Pay Rent
@@ -416,13 +545,13 @@ const TransactionTable = ({ transactions, getStatusBadge, getTypeBadge }: Transa
                   {tx.status === 'completed' ? (
                     <ArrowUpRight className="w-4 h-4 text-success" />
                   ) : (
-                    <ArrowDownRight className="w-4 h-4 text-muted-foreground" />
+                    <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
                   )}
-                  <span className="font-semibold text-foreground">${tx.amount.toLocaleString()}</span>
+                  <span className="font-semibold text-foreground">₹{tx.amount.toLocaleString()}</span>
                 </div>
               </TableCell>
               <TableCell className="text-muted-foreground">{tx.date}</TableCell>
-              <TableCell className="text-muted-foreground">{tx.dueDate || '-'}</TableCell>
+              <TableCell className="text-muted-foreground">{tx.due_date?.split("T")[0] || '-'}</TableCell>
               <TableCell>{getStatusBadge(tx.status)}</TableCell>
               <TableCell className="text-muted-foreground text-sm">{tx.referenceNo || '-'}</TableCell>
               <TableCell className="text-right">

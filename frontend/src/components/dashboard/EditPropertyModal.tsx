@@ -38,6 +38,7 @@ const propertySchema = z.object({
   state: z.string().min(2, 'State is required').max(50),
   zipCode: z.string().min(5, 'Valid zip code required').max(10),
   listing_type: z.enum(['For Rent', 'For Lease']),
+  due_date: z.date().optional(),
   status: z.enum(['available','under maintenance']),
   property_type: z.enum(['Apartment', 'House', 'Condo', 'Townhouse', 'Studio', 'Commercial', 'Penthouse', 'Cabin', 'Villa']),
   monthly_rent: z.string().min(1, 'Price is required').refine((val) => !isNaN(Number(val)) && Number(val) > 0, 'Price must be a positive number'),
@@ -72,6 +73,7 @@ export interface PropertyData {
   otherrooms: number;
   floors: number;
   total_area: number;
+  due_date: Date;
 
   description: string;
   amenities: string[];
@@ -115,6 +117,7 @@ const [isSubmitting, setIsSubmitting] = useState(false);
       listing_type: 'For Rent',
       property_type: 'Apartment',
       status:'available',
+      due_date: new Date(),
       monthly_rent: '',
       bedrooms: '0',
       bathrooms: '1',
@@ -138,6 +141,7 @@ const [isSubmitting, setIsSubmitting] = useState(false);
         zipCode: '00000',
         listing_type: (property.listing_type as 'For Rent' | 'For Lease'),
         status: (property.status as 'available' | 'under maintenance'),
+        due_date: property.due_date ? new Date(property.due_date) : new Date(),
         property_type: (property.property_type as PropertyFormValues['property_type']) || 'Apartment',
         monthly_rent: property.monthly_rent?.toString() || '',
         bedrooms: property.bedrooms?.toString() || '0',
@@ -215,6 +219,7 @@ const onSubmit = async (data: PropertyFormValues) => {
       otherrooms:Number(data.otherrooms),
       floors:Number(data.floors),
       total_area: Number(data.area),
+      due_date: data.due_date,
 
       status: data.status,
 
@@ -278,7 +283,7 @@ const onSubmit = async (data: PropertyFormValues) => {
                 )}
               />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="listing_type"
@@ -355,6 +360,7 @@ const onSubmit = async (data: PropertyFormValues) => {
               />
               </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="monthly_rent"
@@ -365,13 +371,39 @@ const onSubmit = async (data: PropertyFormValues) => {
                     </FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Input placeholder="850000" className="pl-3" {...field} />
+                        <Input placeholder="8500" className="pl-3" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="due_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Due Date
+                    </FormLabel>
+                    <FormControl>
+                        <Input type="date" placeholder='Enter a date'
+                        value={
+                          field.value ? new Date(field.value).toISOString().split("T")[0] : ""
+                        }
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? new Date(e.target.value) : null
+                          )
+                        }
+                        className="pl-3"/>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              </div>
             </div>
 
             {/* Location */}

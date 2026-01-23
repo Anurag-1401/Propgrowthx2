@@ -24,7 +24,6 @@ const Contact = () => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate form submission
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     setIsSubmitting(false);
@@ -45,14 +44,14 @@ const Contact = () => {
     {
       icon: Phone,
       title: 'Call Us',
-      value: '+1 (234) 567-890',
-      href: 'tel:+1234567890',
+      value: '+91 9876543218',
+      href: 'tel:+919876543218',
     },
     {
       icon: MapPin,
       title: 'Visit Us',
-      value: '100 Market St, San Francisco, CA 94105',
-      href: '#',
+      value: 'Banglore, Karnataka, India',
+      href: 'https://www.google.com/maps/place/Bengaluru,+Karnataka,+India/',
     },
     {
       icon: Clock,
@@ -74,7 +73,7 @@ const Contact = () => {
 
       <Layout>
         {/* Header */}
-        <section className="bg-gradient-to-br from-primary to-secondary py-16 lg:py-24">
+        <section className="bg-gradient-to-br from-primary to-secondary py-16 lg:py-24 mt-5">
           <div className="container-custom">
             <div className="max-w-3xl mx-auto text-center text-primary-foreground">
               <span className="inline-block px-4 py-1.5 rounded-full bg-primary-foreground/10 border border-primary-foreground/20 text-sm font-medium mb-6">
@@ -161,7 +160,7 @@ const Contact = () => {
                           <Label htmlFor="firstName">First Name</Label>
                           <Input
                             id="firstName"
-                            placeholder="John"
+                            placeholder="Anand"
                             required
                           />
                         </div>
@@ -169,7 +168,7 @@ const Contact = () => {
                           <Label htmlFor="lastName">Last Name</Label>
                           <Input
                             id="lastName"
-                            placeholder="Doe"
+                            placeholder="Sharma"
                             required
                           />
                         </div>
@@ -181,16 +180,16 @@ const Contact = () => {
                           <Input
                             id="email"
                             type="email"
-                            placeholder="john@example.com"
+                            placeholder="anand.sharma@example.com"
                             required
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="phone">Phone (Optional)</Label>
+                          <Label htmlFor="phone">Phone</Label>
                           <Input
                             id="phone"
                             type="tel"
-                            placeholder="+1 (234) 567-890"
+                            placeholder="+91 9876543218"
                           />
                         </div>
                       </div>

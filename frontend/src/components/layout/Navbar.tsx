@@ -9,8 +9,8 @@ const Navbar = () => {
   const role = sessionStorage.getItem('role');
 
   const navLinks = [
-    { name: 'Home', href: role === 'owner' ? '/dashboard/owner' : role === 'tenant' ? '/dashboard/tenant' : '/dashboard/owner' },
-    { name: 'Manage your properties', href: role === 'owner' ? '/dashboard/owner/properties' : role === 'tenant' ? '/dashboard/tenant' : '/dashboard/owner/properties' },
+    { name: 'Home', href: '/' },
+    { name: 'Manage your properties', href: `/dashboard/${role}` },
     // { name: 'About', href: '/about' },
     { name: 'Services', href: '/services' },
     // { name: 'Properties', href: '/properties' },
@@ -18,7 +18,7 @@ const Navbar = () => {
     { name: 'Support', href: '/contact' },
     { name: 'Profile', href: '/profile' },
   ];
-
+ 
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path+'/');
 
   return (

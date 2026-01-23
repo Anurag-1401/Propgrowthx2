@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import {
   Home,
   Heart,
@@ -19,6 +19,9 @@ import {
   LogOut,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useState ,useEffect} from 'react';
+import { Transaction } from './TenantTransactions';
+import { supabase } from '@/lib/supabase';
 
 const TenantDashboard = () => {
   const stats = [
@@ -78,35 +81,64 @@ const TenantDashboard = () => {
     },
   ];
 
-  const transactions = [
-    {
-      id: 1,
-      property: 'Waterfront Condo',
-      type: 'Purchase',
-      amount: 6500,
-      date: '2024-06-15',
-      status: 'completed',
-    },
-    {
-      id: 2,
-      property: 'Urban Loft',
-      type: 'Rental Payment',
-      amount: 2800,
-      date: '2024-12-01',
-      status: 'completed',
-    },
-    {
-      id: 3,
-      property: 'Urban Loft',
-      type: 'Rental Payment',
-      amount: 2800,
-      date: '2024-11-01',
-      status: 'completed',
-    },
-  ];
-
+  // const transactions = [
+  //   {
+  //     id: 1,
+  //     property: 'Waterfront Condo',
+  //     type: 'Purchase',
+  //     amount: 6500,
+  //     date: '2024-06-15',
+  //     status: 'completed',
+  //   },
+  //   {
+  //     id: 2,
+  //     property: 'Urban Loft',
+  //     type: 'Rental Payment',
+  //     amount: 2800,
+  //     date: '2024-12-01',
+  //     status: 'completed',
+  //   },
+  //   {
+  //     id: 3,
+  //     property: 'Urban Loft',
+  //     type: 'Rental Payment',
+  //     amount: 2800,
+  //     date: '2024-11-01',
+  //     status: 'completed',
+  //   },
+  // ];
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const navigate = useNavigate();
-  
+
+useEffect(() => {
+  const fetchTransactions = async () => {
+    const userId = sessionStorage.getItem("id");
+
+    const { data, error } = await supabase
+      .from("payments")
+      .select("*")
+      .eq("tenant_id", userId)
+      .order("date", { ascending: false });
+
+    if (!error && data) {
+      setTransactions(
+        data.map((p) => ({
+          id: p.id,
+          property_id: p.property_id,
+          type: p.type,
+          amount: p.amount,
+          date: p.date,
+          due_date: p.due_date,
+          status: p.status,
+          paymentMethod: p.payment_method,
+          referenceNo: p.reference_no,
+        }))
+      );
+    }
+  };
+
+  fetchTransactions();
+}, []);  
 
   return (
     <>
@@ -137,17 +169,6 @@ const TenantDashboard = () => {
                   Explore Properties
                 </Link>
               </Button>  */}
-              <button className='mr-7 bg-destructive rounded p-1'
-                onClick={()=>{ 
-                  sessionStorage.removeItem('token')
-                  sessionStorage.removeItem('id')
-                  sessionStorage.removeItem('role')
-                  navigate("/auth", { replace: true });
-                }
-              }
-              >
-                <LogOut/>
-              </button>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4 mb-8">
@@ -344,14 +365,14 @@ const TenantDashboard = () => {
                       >
                         <div>
                           <div className="font-medium text-foreground text-sm">
-                            {tx.property}
+                            {tx.property_id}
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {tx.type}
                           </div>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                             <Calendar className="w-3 h-3" />
-                            {tx.date}
+                            {tx.date.split("T")[0]}
                           </div>
                         </div>
                         <div className="text-right">
@@ -366,7 +387,9 @@ const TenantDashboard = () => {
                     ))}
                   </div>
 
-                  <Button variant="outline" className="w-full mt-4" size="sm">
+                  <Button variant="outline" className="w-full mt-4" size="sm"
+                  onClick={() => navigate('/dashboard/tenant/transactions')}
+                  >
                     View All Transactions
                   </Button>
                 </div>

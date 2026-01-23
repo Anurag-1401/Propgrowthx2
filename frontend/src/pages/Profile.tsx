@@ -34,30 +34,49 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 
 type ProfileData = {
+  id?: string;
+  role?: 'tenant' | 'owner';
+
   name: string;
   email: string;
-  phone:string;
+  phone: string;
   avatar: string | null;
-
-  s_link1: string | null;
-  s_link2: string | null;
-  s_link3: string | null;
 
   address: string | null;
   city: string | null;
   state: string | null;
   zip_code: string | null;
+
+  s_link1: string | null;
+  s_link2: string | null;
+  s_link3: string | null;
+  company?: string | null;
+
+  past_residence?: string | null;
+  id_proof?: string | null;
+  background?: string | null;
+  family_members?: number | null;
+  family_members_names?: string[] | null;
 };
+
 
 
 const Profile = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [idPreview, setIdPreview] = useState<string | null>(null);
 
   const [profile, setProfile] = useState<ProfileData|null>(null);
   const id = sessionStorage.getItem('id');
+  const role = sessionStorage.getItem('role');
+  const isOwner = role === 'owner';
 
+  useEffect(() => {
+  if (profile?.id_proof) {
+    setIdPreview(profile.id_proof);
+  }
+  }, [profile]);
 
   useEffect(()=>{
 
@@ -87,12 +106,60 @@ const Profile = () => {
     marketUpdates: false,
   });
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setProfile((prev) => prev ? { ...prev, [name]: value } : prev);
+  const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (!e.target.files || e.target.files.length === 0) return;
+
+  const file = e.target.files[0];
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    const result = reader.result;
+
+    if (typeof result === 'string') {
+      setIdPreview(result);
+
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              id_proof: result,
+            }
+          : prev
+      );
+    }
   };
+
+  reader.readAsDataURL(file);
+  e.target.value = '';
+};
+
+
+
+  const handleInputChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+) => {
+  const { name, value } = e.target;
+
+  setProfile((prev) => {
+    if (!prev) return prev;
+
+    if (name === 'family_members') {
+      const count = Number(value);
+
+      return {
+        ...prev,
+        family_members: count,
+        family_members_names: Array.from(
+          { length: count },
+          (_, i) => prev.family_members_names?.[i] || ''
+        ),
+      };
+    }
+
+    return { ...prev, [name]: value };
+  });
+};
+
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -127,16 +194,7 @@ const Profile = () => {
   const { error } = await supabase
     .from('profiles')
     .update({
-      name: profile.name,
-    phone: profile.phone,
-    avatar: profile.avatar,
-    address: profile.address,
-    city: profile.city,
-    state: profile.state,
-    zip_code: profile.zip_code,
-    s_link1: profile.s_link1,
-    s_link2: profile.s_link2,
-    s_link3: profile.s_link3,
+      ...profile,
     })
     .eq('id', id);
 
@@ -179,7 +237,7 @@ const Profile = () => {
               </Button>
               <div>
                 <h1 className="text-3xl font-bold text-foreground">
-                  Owner Profile
+                  {isOwner ? "Owner Profile" : "Tenant Profile"}
                 </h1>
                 <p className="text-muted-foreground">
                   Manage your profile and account settings
@@ -284,6 +342,52 @@ const Profile = () => {
                 </CardContent>
               </Card>
 
+              {isOwner && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Briefcase className="w-5 h-5" />
+                    Family Details
+                  </CardTitle>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  {/* Family Count */}
+                  <div className="space-y-2 w-40">
+                    <Label>Family Members</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      name="family_members"
+                      value={profile?.family_members ?? ''}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+
+                  {/* Family Member Names */}
+                  {profile?.family_members_names?.map((name, index) => (
+                    <div key={index} className="space-y-2">
+                      <Label>Family Member {index + 1} Name</Label>
+                      <Input
+                        type="text"
+                        value={name}
+                        onChange={(e) => {
+                          const updated = [...profile.family_members_names!];
+                          updated[index] = e.target.value;
+
+                          setProfile((prev) =>
+                            prev ? { ...prev, family_members_names: updated } : prev
+                          );
+                        }}
+                        placeholder={`Enter name`}
+                      />
+                    </div>
+                  ))}
+                </CardContent>
+
+              </Card>
+              )}  
+
               {/* Address */}
               <Card>
                 <CardHeader>
@@ -340,6 +444,155 @@ const Profile = () => {
                   </div>
                 </CardContent>
               </Card>
+              
+              {isOwner && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Briefcase className="w-5 h-5" />
+                    Business & Social Links
+                  </CardTitle>
+                  <CardDescription>
+                    Manage your business identity and social presence
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Company / Business Name</Label>
+                    <Input
+                      name="company"
+                      value={profile?.company ?? ''}
+                      onChange={handleInputChange}
+                      placeholder="Enter business name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Website</Label>
+                    <Input
+                      name="s_link1"
+                      value={profile?.s_link1 ?? ''}
+                      onChange={handleInputChange}
+                      placeholder="https://"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>LinkedIn</Label>
+                    <Input
+                      name="s_link2"
+                      value={profile?.s_link2 ?? ''}
+                      onChange={handleInputChange}
+                      placeholder="https://linkedin.com/in/..."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Instagram / Twitter</Label>
+                    <Input
+                      name="s_link3"
+                      value={profile?.s_link3 ?? ''}
+                      onChange={handleInputChange}
+                      placeholder="https://"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {!isOwner && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="w-5 h-5" />
+                    Tenant Verification Details
+                  </CardTitle>
+                  <CardDescription>
+                    Residential history and verification information
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  {/* Past Residence */}
+                  <div className="space-y-2">
+                    <Label>Past Residence Address</Label>
+                    <Textarea
+                      name="past_residence"
+                      value={profile?.past_residence ?? ''}
+                      onChange={handleInputChange}
+                      placeholder="Enter previous residence address"
+                    />
+                  </div>
+
+                  {/* ID Proof */}
+                  <div className="space-y-2">
+                    <Label>ID Proof (Aadhaar / PAN / Passport)</Label>
+                              
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleIdProofChange}
+                    />
+                  
+                    {idPreview && (
+                      <div className="mt-2">
+                        <img
+                          src={idPreview}
+                          alt="ID Proof Preview"
+                          className="w-48 h-auto rounded-md border"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
+
+                  {/* Background */}
+                  <div className="space-y-2">
+                    <Label>Background / Occupation</Label>
+                    <Textarea
+                      name="background"
+                      value={profile?.background ?? ''}
+                      onChange={handleInputChange}
+                      placeholder="Student / Job / Business / Other"
+                    />
+                  </div>
+
+                  {/* Family Members */}
+                  <div className="space-y-2 w-40">
+                    <Label>Family Members</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      name="family_members"
+                      value={profile?.family_members ?? ''}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                              
+                  {/* Family Member Names */}
+                  {profile?.family_members_names?.map((name, index) => (
+                    <div key={index} className="space-y-2">
+                      <Label>Family Member {index + 1} Name</Label>
+                      <Input
+                        type="text"
+                        value={name}
+                        onChange={(e) => {
+                          const updated = [...profile.family_members_names!];
+                          updated[index] = e.target.value;
+                        
+                          setProfile((prev) =>
+                            prev ? { ...prev, family_members_names: updated } : prev
+                          );
+                        }}
+                        placeholder={`Enter name`}
+                      />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
 
               {/* Notification Settings */}
               <Card>
