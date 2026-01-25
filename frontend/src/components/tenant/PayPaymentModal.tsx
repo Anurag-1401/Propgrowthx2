@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "../ui/input";
+import { useData } from "@/context/dataContext";
 
 interface PayPaymentModalProps {
   open: boolean;
@@ -21,6 +22,7 @@ const PayPaymentModal = ({
   open,
   onOpenChange,
 }: PayPaymentModalProps) => {
+  const { properties,profile ,id} = useData();
   const [loading, setLoading] = useState(false);
   const userId = sessionStorage.getItem("id");
 
@@ -29,10 +31,8 @@ const PayPaymentModal = ({
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("UPI");
 
-   const myProperties = [
-    { id: "70040945-305b-471f-936c-a808a0e439c9", name: 'Urban Loft, Seattle' ,monthly_rent:10000.00,due_date:'2026-01-25'},
-    { id: "00000000-0000-0000-0000-000000000111", name: 'Waterfront Condo, Miami' ,monthly_rent:3000.00,due_date:'2026-01-25'},
-  ];
+    const myProperties = properties.filter((p)=>p.buyer_id === id)
+
 
   useEffect(() => {
   const selected = myProperties.find(p => p.id === propertyId);
@@ -56,7 +56,7 @@ const PayPaymentModal = ({
     const { error } = await supabase.from("payments").insert([
       {
         tenant_id: userId,
-        owner_id:"77e732e6-fd8d-47bd-a0a4-f2df9fc547b2",
+        owner_id: properties.find(p => p.id === propertyId)?.owner_id,
         property_id: propertyId,
         type: type,
         amount: Number(amount),
@@ -102,7 +102,7 @@ const PayPaymentModal = ({
           <SelectContent>
             {myProperties.map((property) => (
               <SelectItem key={property.id} value={property.id.toString()}>
-                {property.name}
+                {property.property_name}
               </SelectItem>
             ))}
           </SelectContent>

@@ -1,32 +1,17 @@
-import { useState ,useEffect} from 'react';
-import { Badge } from '@/components/ui/badge';
+import { useState} from 'react';
 import {
-  Clock,
   ArrowLeft,
   Plus,
-  Home,
-  Calendar,
-  User,
-  Send,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import AddComplaintModal from "@/components/tenant/AddComplaintModal";
 import { Complaint } from '@/components/tenant/AddComplaintModal';
-import { supabase } from '@/lib/supabase';
 import { Helmet } from 'react-helmet-async';
 import { Button } from "@/components/ui/button";
 import { Link } from 'react-router-dom';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import Layout from '@/components/layout/Layout';
 import ComplaintList from '@/components/dashboard/ComplaintList';
-import { getPriorityBadge, getStatusBadge} from '@/components/dashboard/ComplaintList';
-import { Textarea } from '@/components/ui/textarea';
+import { useData } from '@/context/dataContext';
 
 
 
@@ -38,81 +23,10 @@ const TenantComplaints = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const tenantId = sessionStorage.getItem("id");
-  const [replyText, setReplyText] = useState('');
-  const [sending, setSending] = useState(false);
 
-  const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-      fetchComplaints();
-    }, []);
-  
-  const fetchComplaints = async () => {
-  setLoading(true);
-
-  const { data, error } = await supabase
-    .from("complaints")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    toast({
-      title: "Error fetching complaints",
-      description: error.message,
-      variant: "destructive",
-    });
-  } else {
-    setComplaints(data ?? []);
-    console.log("Fetched complaints:", data);
-  }
-
-  setLoading(false);
-};
-
-const handleTenantReply = async () => {
-  if (!replyText.trim() || !selectedComplaint) return;
-
-  const newReply = {
-    from: 'Tenant',
-    message: replyText.trim(),
-    date: new Date().toISOString().split('T')[0],
-  };
-
-  setSending(true);
-
-  const { error } = await supabase
-    .from('complaints')
-    .update({
-      responses: [...selectedComplaint.responses, newReply],
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', selectedComplaint.id);
-
-  if (!error) {
-    setSelectedComplaint(prev =>
-      prev
-        ? { ...prev, responses: [...prev.responses, newReply] }
-        : prev
-    );
-
-    setReplyText('');
-  }
-
-  setSending(false);
-};
+  const {complaints,id} = useData();
 
 
-  const filteredComplaints = complaints.filter((complaint) => {
-    const matchesSearch =
-      complaint.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      complaint.property_id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || complaint.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
 
   return (
     <>
@@ -151,8 +65,8 @@ const handleTenantReply = async () => {
             />
 
              <ComplaintList
-              complaints={complaints}
-              setComplaints={setComplaints}
+              complaints={complaints.filter((c)=> c.tenant_id === id)}
+              setComplaints={useData().setComplaints}
               onSelect={(complaint) => {
                 setSelectedComplaint(complaint);
                 setIsDetailModalOpen(true);

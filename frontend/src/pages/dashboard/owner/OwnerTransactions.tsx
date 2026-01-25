@@ -2,24 +2,10 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   ArrowLeft,
-  DollarSign,
-  TrendingUp,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  Mail,
-  Calendar,
   Search,
-  Filter,
-  ArrowUpRight,
-  ArrowDownRight,
-  Bell,
-  Home,
-  Building,
 } from 'lucide-react';
 import {
   Table,
@@ -44,138 +30,29 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
-
-export interface Transaction {
-  tenant_id?: string;
-  location?: string;
-  id: number;
-  property_id: string;
-  type: 'rent' | 'deposit' | 'maintenance';
-  amount: string | number;
-  date: string;
-  due_date?: string;
-  propertyImage?:string;
-  status: 'completed' | 'pending' | 'overdue' | 'upcoming';
-  paymentMethod?: string;
-  referenceNo?: string;
-}
-
-interface RentalPayment {
-  id: number;
-  property: string;
-  propertyImage: string;
-  location: string;
-  tenant: string;
-  tenantEmail: string;
-  monthlyRent: number;
-  nextDueDate: string;
-  lastPaymentDate: string;
-  status: 'paid' | 'pending' | 'overdue';
-  daysUntilDue: number;
-  reminderSent: boolean;
-}
+import { useData } from '@/context/dataContext';
+import { Transaction } from '../tenant/TenantTransactions';
 
 const OwnerTransactions = () => {
+  const {transactions,profile,properties,id} = useData();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
 
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-  
-
-    useEffect(() => {
-      const fetchTransactions = async () => {
-        const userId = sessionStorage.getItem("id");
-    
-        const { data, error } = await supabase
-          .from("payments")
-          .select("*")
-          .eq("owner_id", userId)
-          .order("date", { ascending: false });
-    
-        if (!error && data) {
-          setTransactions(data as Transaction[]);
-          console.log("Fetched transactions:", data);
-        }
-      };
-    
-      fetchTransactions();
-    }, []);
-
-  const rentalPayments: RentalPayment[] = [
-    {
-      id: 1,
-      property: 'Cozy Studio Apartment',
-      propertyImage: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400',
-      location: 'New York, NY',
-      tenant: 'Michael Chen',
-      tenantEmail: 'michael.chen@email.com',
-      monthlyRent: 3500,
-      nextDueDate: '2025-01-01',
-      lastPaymentDate: '2024-12-01',
-      status: 'pending',
-      daysUntilDue: 2,
-      reminderSent: false,
-    },
-    {
-      id: 2,
-      property: 'Mountain Retreat Cabin',
-      propertyImage: 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=400',
-      location: 'Denver, CO',
-      tenant: 'Emily Davis',
-      tenantEmail: 'emily.davis@email.com',
-      monthlyRent: 2800,
-      nextDueDate: '2024-12-15',
-      lastPaymentDate: '2024-11-15',
-      status: 'overdue',
-      daysUntilDue: -15,
-      reminderSent: true,
-    },
-    {
-      id: 3,
-      property: 'Waterfront Condo',
-      propertyImage: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400',
-      location: 'Seattle, WA',
-      tenant: 'David Wilson',
-      tenantEmail: 'david.wilson@email.com',
-      monthlyRent: 4200,
-      nextDueDate: '2025-01-20',
-      lastPaymentDate: '2024-12-20',
-      status: 'paid',
-      daysUntilDue: 21,
-      reminderSent: false,
-    },
-    {
-      id: 4,
-      property: 'Commercial Office Space',
-      propertyImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400',
-      location: 'Austin, TX',
-      tenant: 'TechStart Inc.',
-      tenantEmail: 'billing@techstart.com',
-      monthlyRent: 8500,
-      nextDueDate: '2025-01-01',
-      lastPaymentDate: '2024-12-01',
-      status: 'pending',
-      daysUntilDue: 2,
-      reminderSent: false,
-    },
-  ];
-
-  const [payments, setPayments] = useState(rentalPayments);
-
+  const [payments,setPayments] = useState<Transaction[]>(transactions.filter((tx) => tx.owner_id === id));
   // Auto-check for overdue payments and send reminders
   useEffect(() => {
     const checkOverduePayments = () => {
       const today = new Date();
       setPayments(prevPayments =>
         prevPayments.map(payment => {
-          const dueDate = new Date(payment.nextDueDate);
+          const dueDate = new Date(payment.due_date);
           const diffTime = dueDate.getTime() - today.getTime();
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           
-          let newStatus: 'paid' | 'pending' | 'overdue' = payment.status;
-          if (payment.status !== 'paid') {
+          let newStatus: 'completed' | 'pending' | 'overdue' | 'upcoming' = payment.status;
+          if (payment.status !== 'completed') {
             if (diffDays < 0) {
               newStatus = 'overdue';
             } else {
@@ -207,7 +84,7 @@ const OwnerTransactions = () => {
     const payment = payments.find(p => p.id === paymentId);
     toast({
       title: "Reminder Sent",
-      description: `Payment reminder sent to ${payment?.tenant} at ${payment?.tenantEmail}`,
+      description: `Payment reminder sent to ${payment?.tenant_id} at ${profile.find(p=>p.id === payment?.tenant_id)?.email}`,
     });
   };
 
@@ -250,7 +127,7 @@ const OwnerTransactions = () => {
     }
   };
 
-  const filteredTransactions = transactions.filter((tx) => {
+  const filteredTransactions = payments.filter((tx) => {
     const matchesSearch = tx.property_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       tx.type.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || tx.type === filterType;
@@ -259,11 +136,11 @@ const OwnerTransactions = () => {
   });
 
   const stats = {
-    totalRevenue: transactions.filter(t => t.status === 'completed').reduce((sum, t) => sum + Number(t.amount), 0),
-    rentalIncome: transactions.filter(t => (t.type === 'rent' || t.type === 'deposit') && t.status === 'completed').reduce((sum, t) => sum + Number(t.amount), 0),
-    pendingAmount: transactions.filter(t => t.status === 'pending').reduce((sum, t) => sum + Number(t.amount), 0),
+    totalRevenue: payments.filter(t => t.status === 'completed').reduce((sum, t) => sum + Number(t.amount), 0),
+    rentalIncome: payments.filter(t => (t.type === 'rent' || t.type === 'deposit') && t.status === 'completed').reduce((sum, t) => sum + Number(t.amount), 0),
+    pendingAmount: payments.filter(t => t.status === 'pending').reduce((sum, t) => sum + Number(t.amount), 0),
     overduePayments: payments.filter(p => p.status === 'overdue').length,
-    expectedMonthlyRent: payments.reduce((sum, p) => sum + p.monthlyRent, 0),
+    expectedMonthlyRent: payments.reduce((sum, p) => sum + Number(p.amount), 0),
   };
 
   return (
@@ -408,18 +285,20 @@ const OwnerTransactions = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredTransactions.map((tx) => (
+                        {filteredTransactions.map((tx) => {
+                            const property = properties.find(p=>p.id === tx.property_id);
+                          return(
                           <TableRow key={tx.id} className="hover:bg-muted/30">
                             <TableCell>
                               <div className="flex items-center gap-4">
                                 <img
-                                  src={tx.propertyImage? tx.propertyImage : '../../../../public/placeholder-property.jpg'}
+                                  src={property?.images[0] || '../../../../public/placeholder-property.jpg'}
                                   alt={tx.property_id}
                                   className="w-16 h-12 rounded-lg object-cover"
                                 />
                                 <div>
-                                  <div className="font-medium text-foreground">{tx.property_id}</div>
-                                  <div className="text-sm text-muted-foreground">{tx.location|| ''}</div>
+                                  <div className="font-medium text-foreground">{property?.property_name}</div>
+                                  <div className="text-sm text-muted-foreground">{property?.address|| ''}</div>
                                 </div>
                               </div>
                             </TableCell>
@@ -429,15 +308,16 @@ const OwnerTransactions = () => {
                               {tx.type === 'rent' && <span className="text-muted-foreground font-normal">/mo</span>}
                             </TableCell>
                             <TableCell className="text-muted-foreground">{tx.date}</TableCell>
-                            <TableCell className="text-foreground">{tx.tenant_id}</TableCell>
+                            <TableCell className="text-foreground">{profile.find(p=>p.id === tx.tenant_id)?.name}</TableCell>
                             <TableCell>{tx.status}</TableCell>
                           </TableRow>
-                        ))}
+                        );
+                      })}
                       </TableBody>
                     </Table>
                   </div>
                 </div>)
-                  :(
+                  :( 
                     <p className='text-center'>No properties for transactions</p>
                   )
                 }

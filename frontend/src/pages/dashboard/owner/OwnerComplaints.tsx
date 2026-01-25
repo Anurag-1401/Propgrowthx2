@@ -1,170 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
   ArrowLeft,
-  User,
-  Send,
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { Complaint } from '@/components/tenant/AddComplaintModal';
-import { supabase } from "@/lib/supabase";
 import ComplaintList from '@/components/dashboard/ComplaintList';
-import { getPriorityBadge,getStatusIcon } from '@/components/dashboard/ComplaintList';
-import { set } from 'date-fns';
+import { useData } from '@/context/dataContext';
 
 const OwnerComplaints = () => {
-  const { toast } = useToast();
+  const {complaints,setComplaints,id} = useData();
+
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
-  const [responseText, setResponseText] = useState('');
-  const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [loading, setLoading] = useState(true);
   
-  useEffect(() => {
-        fetchComplaints();
-      }, []);
-    
-    const fetchComplaints = async () => {
-    setLoading(true);
-  
-    const { data, error } = await supabase
-      .from("complaints")
-      .select("*")
-      .order("created_at", { ascending: false });
-  
-    if (error) {
-      toast({
-        title: "Error fetching complaints",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      setComplaints(data ?? []);
-      console.log("Fetched complaints:", data);
-    }
-  
-    setLoading(false);
-  };
-
-  const handleStatusChange = async (
-  complaintId: string,
-  newStatus: Complaint["status"]
-) => {
-
-  setLoading(true);
-  const { data, error } = await supabase
-    .from("complaints")
-    .update({
-      status: newStatus,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", complaintId)
-    .select()
-    .single();
-
-  if (error) {
-    toast({
-      title: "Error",
-      description: error.message,
-      variant: "destructive",
-    });
-    setLoading(false);
-    return;
-  }
-
-  setComplaints((prev) =>
-    prev.map((c) => (c.id === data.id ? data : c))
-  );
-
-  setSelectedComplaint((prev) =>
-    prev?.id === data.id ? data : prev
-  );
-
-  toast({
-    title: "Status Updated",
-    description: `Complaint status changed to ${newStatus}`,
-  });
-  setLoading(false);
-};
-
-
-  const handleSendResponse =async  () => {
-    if (!responseText.trim() || !selectedComplaint) return;
-
-    setLoading(true);
-    const newResponse = {
-      date: new Date().toISOString(),
-      message: responseText,
-      from: 'Property Owner',
-    };
-
-     const { data, error } = await supabase
-    .from("complaints")
-    .update({
-      responses: [...(selectedComplaint.responses || []), newResponse],
-      status:
-        selectedComplaint.status === "open"
-          ? "in-progress"
-          : selectedComplaint.status,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", selectedComplaint.id)
-    .select()
-    .single();
-
-  if (error) {
-    toast({
-      title: "Error",
-      description: error.message,
-      variant: "destructive",
-    });
-    setLoading(false);
-    return;
-  }
-
-  setComplaints((prev) =>
-    prev.map((c) => (c.id === data.id ? data : c))
-  );
-
-  setSelectedComplaint(data);
-  setResponseText("");
-
-    setResponseText('');
-    toast({
-      title: 'Response Sent',
-      description: 'Your response has been sent to the tenant.',
-    });
-    setLoading(false);
-  };
+  const ownerComp = complaints.filter(c => c.owner_id === id);
 
   const stats = {
-    total: complaints.length,
-    open: complaints.filter(c => c.status === 'open').length,
-    inProgress: complaints.filter(c => c.status === 'in-progress').length,
-    resolved: complaints.filter(c => c.status === 'resolved').length,
-    urgent: complaints.filter(c => c.priority === 'urgent' && c.status !== 'resolved' && c.status !== 'closed').length,
+    total: ownerComp.length,
+    open: ownerComp.filter(c => c.status === 'open').length,
+    inProgress: ownerComp.filter(c => c.status === 'in-progress').length,
+    resolved: ownerComp.filter(c => c.status === 'resolved').length,
+    urgent: ownerComp.filter(c => c.priority === 'urgent' && c.status !== 'resolved' && c.status !== 'closed').length,
   };
 
   return (
@@ -219,7 +81,7 @@ const OwnerComplaints = () => {
  
             {/* Complaints List */}
             <ComplaintList
-            complaints={complaints}
+            complaints={ownerComp}
             setComplaints={setComplaints}
             onSelect={(complaint) => {
               setSelectedComplaint(complaint);
