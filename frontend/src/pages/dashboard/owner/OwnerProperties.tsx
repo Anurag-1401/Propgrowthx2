@@ -45,7 +45,7 @@ import AddPropertyModal from '@/components/dashboard/AddPropertyModal';
 import EditPropertyModal, { PropertyData } from '@/components/dashboard/EditPropertyModal';
 import DeletePropertyDialog from '@/components/dashboard/DeletePropertyDialog';
 import PropertyAnalyticsModal from '@/components/dashboard/PropertyAnalyticsModal';
-import { supabase } from '@/lib/supabase';
+import { useData } from '@/context/dataContext';
 
 interface ExtendedPropertyData extends PropertyData {
   listedDate: string;
@@ -53,6 +53,8 @@ interface ExtendedPropertyData extends PropertyData {
 }
 
 const OwnerProperties = () => {
+  const {properties,setProperties,id} = useData();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -61,59 +63,7 @@ const OwnerProperties = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<ExtendedPropertyData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [properties, setProperties] = useState<ExtendedPropertyData[]>([])
-  const id = sessionStorage.getItem('id');
-
-   useEffect(() => {
-      fetchProperties();
-    }, []);
-  
-//     const fetchProperties = async () => {
-//       setLoading(true);
-  
-//       try {
-//     const res = await fetch(
-//       "http://localhost:5000/api/properties/get_all_prop_by_owner?owner_id=77e732e6-fd8d-47bd-a0a4-f2df9fc547b2"
-//     );
-
-//     const json = await res.json();
-
-//     if (res.ok) {
-//       // Map the data to your ExtendedPropertyData interface if needed
-//       const mappedProperties = (json.properties || []).map((p) => ({
-//         ...p,
-//         listedDate: new Date(p.created_at).toLocaleDateString(), // add a formatted listedDate
-//         images: p.images || [], // ensure images array exists
-//       }));
-
-//       setProperties(mappedProperties);
-//     } else {
-//       console.error("Error fetching properties:", json.error);
-//     }
-//   } catch (err) {
-//     console.error("Fetch failed:", err);
-//   }
-
-//   setLoading(false);
-// };
-
-
-const fetchProperties = async () => {
-       setLoading(true); 
-       const { data, error } = await supabase 
-       .from("properties") 
-       .select("*")
-       .eq("owner_id", id)
-       .order("created_at", 
-        { ascending: false }); 
-        
-        if (!error && data) { 
-          setProperties(data as ExtendedPropertyData[]); 
-        } 
-        
-        setLoading(false); 
-      };
+   
 
   const handleEditClick = (property: ExtendedPropertyData) => {
     setSelectedProperty(property);
@@ -140,35 +90,24 @@ const fetchProperties = async () => {
     setProperties(prev => prev.filter(p => p.id !== propertyId));
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-success text-primary-foreground">Active</Badge>;
-      case 'pending':
-        return <Badge className="bg-warning text-foreground">Pending</Badge>;
-      case 'rented':
-        return <Badge className="bg-secondary text-secondary-foreground">Rented</Badge>;
-      case 'sold':
-        return <Badge className="bg-primary text-primary-foreground">Sold</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
 
-  const getTypeBadge = (type: string) => {
-    switch (type) {
-      case 'For Sale':
-        return <Badge variant="outline" className="border-primary text-primary">For Sale</Badge>;
-      case 'For Rent':
-        return <Badge variant="outline" className="border-secondary text-secondary">For Rent</Badge>;
-      case 'For Lease':
-        return <Badge variant="outline" className="border-warning text-warning">For Lease</Badge>;
-      default:
-        return <Badge variant="outline">{type}</Badge>;
-    }
-  };
+const extendedProperties: ExtendedPropertyData[] = properties.map(
+  (property) => ({
+    ...property,
+    listedDate:
+      (property as any).listedDate ??
+      property.created_at ??
+      new Date().toISOString(),
 
- const filteredProperties = properties.filter((property) => {
+    images:
+      (property as any).images ??
+      [],
+  })
+);
+
+const ownerProp = extendedProperties.filter((prop) => prop.owner_id === id);
+
+ const filteredProperties = ownerProp.filter((property) => {
   const name = property.property_name || "";        // fallback to empty string
   const location = property.city || ""; // fallback to empty string
 
@@ -184,11 +123,11 @@ const fetchProperties = async () => {
 
 
   const stats = {
-    total: properties.length,
-    active: properties.filter(p => p.status === 'active').length,
-    rented: properties.filter(p => p.status === 'rented').length,
-    sold: properties.filter(p => p.status === 'sold').length,
-    totalValue: properties.reduce((sum, p) => sum, 0),
+    total: ownerProp.length,
+    active: ownerProp.filter(p => p.status === 'active').length,
+    rented: ownerProp.filter(p => p.status === 'rented').length,
+    sold: ownerProp.filter(p => p.status === 'sold').length,
+    totalValue: ownerProp.reduce((sum, p) => sum, 0),
   };
 
   return (

@@ -29,10 +29,12 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useState } from "react";
 import { Upload } from "lucide-react";
+import { useData } from "@/context/dataContext";
 
 export interface Complaint {
   id: string;
   tenant_id:string
+  owner_id?:string
   property_id: string;
   category: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
@@ -60,14 +62,6 @@ interface AddComplaintModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-
-
-  const myProperties = [
-    { id: "70040945-305b-471f-936c-a808a0e439c9", name: 'Urban Loft, Seattle' },
-    { id: "00000000-0000-0000-0000-000000000111", name: 'Waterfront Condo, Miami' },
-  ];
-
   
 const categories = [
   "Maintenance",
@@ -84,8 +78,9 @@ const AddComplaintModal = ({
   open,
   onOpenChange,
 }: AddComplaintModalProps) => {
+  const {properties,id} = useData();
 
-     const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const tenantId = sessionStorage.getItem("id");
   const [images, setImages] = useState<(string)[]>([]);
 
@@ -101,7 +96,7 @@ const AddComplaintModal = ({
     },
   });
 
-
+  const myProperties = properties.filter((p)=>p.buyer_id === id)
   
  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   if (!e.target.files) return;
@@ -141,6 +136,7 @@ const AddComplaintModal = ({
     const { error } = await supabase.from("complaints").insert([
       {
         tenant_id: tenantId,
+        owner_id: properties.find((p) => p.id === data.property_id)?.owner_id || null,
         property_id: data.property_id,
         category: data.category,
         priority: data.priority,
@@ -194,7 +190,7 @@ const AddComplaintModal = ({
                     <SelectContent>
                       {myProperties.map((property) => (
                         <SelectItem key={property.id} value={property.id.toString()}>
-                          {property.name}
+                          {property.property_name}
                         </SelectItem>
                       ))}
                     </SelectContent>

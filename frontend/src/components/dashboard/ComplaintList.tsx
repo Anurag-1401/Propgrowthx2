@@ -33,9 +33,10 @@ import { Complaint } from '@/components/tenant/AddComplaintModal';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { useData } from '@/context/dataContext';
 
 export const getStatusBadge = (status: string) => {
     switch (status) {
@@ -86,7 +87,7 @@ export const getStatusBadge = (status: string) => {
 
 interface ComplaintListProps {
   complaints?: Complaint[];
-  setComplaints?: (complaints: Complaint[]) => void;
+  setComplaints : React.Dispatch<React.SetStateAction<Complaint[]>>;
   onSelect?: (complaint: Complaint) => void;
 
   searchTerm?: string;
@@ -111,7 +112,9 @@ export default function ComplaintList({
   priorityFilter,
   setPriorityFilter,
 }: ComplaintListProps) {
+    
     const { toast } = useToast();
+    const {properties,profile} = useData();
   
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
@@ -313,13 +316,13 @@ return(
                   )}
                 </div>
                 <div className="flex items-center gap-3 text-sm text-muted-foreground mb-2">
-                  <span className="flex items-center gap-1">
+                  {isOwner && <span className="flex items-center gap-1">
                     <User className="w-4 h-4" />
-                    {complaint.tenant_id}
-                  </span>
+                    {profile?.find((p) => p.id === complaint.tenant_id)?.name}
+                  </span>}
                   <span className="flex items-center gap-1">
                     <Home className="w-4 h-4" />
-                    {complaint.property_id}
+                    {properties.find((p) => p.id === complaint.property_id)?.property_name}
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-2">{complaint.description}</p>
@@ -378,7 +381,7 @@ return(
                   {selectedComplaint.subject}
                 </DialogTitle>
                 <DialogDescription>
-                  Submitted by {selectedComplaint.tenant_id} - on {selectedComplaint.created_at.split('T')[0]}
+                  Submitted by {profile.find(p=>p.id === selectedComplaint.tenant_id)?.name} - on {selectedComplaint.created_at.split('T')[0]}
                 </DialogDescription>
               </DialogHeader>
 
@@ -387,7 +390,7 @@ return(
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-muted-foreground">Property</Label>
-                    <p className="font-medium">{selectedComplaint.property_id}</p>
+                    <p className="font-medium">{properties.find((p) => p.id === selectedComplaint.property_id)?.property_name}</p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Category</Label>
@@ -432,7 +435,8 @@ return(
                       <User className="w-5 h-5 text-secondary" />
                     </div>
                     <div>
-                      <p className="font-medium">{selectedComplaint.tenant_id}</p>
+                      <p className="font-medium">{profile.find(p=>p.id === selectedComplaint.tenant_id)?.name}</p>
+                      <p className="font-medium">{profile.find(p=>p.id === selectedComplaint.tenant_id)?.email}</p>
                     </div>
                   </div>
                 </div>}
@@ -467,7 +471,10 @@ return(
                               >
                                 <div className="flex items-center gap-2 mb-1 text-xs opacity-80">
                                   <User className="w-4 h-4" />
-                                  <span className="font-medium">{response.from}</span>
+                                  <span className="font-medium">{isOwner ?
+                                    response.from === 'Tenant' ? 'Tenant' : 'You' : 
+                                    response.from === 'Tenant' ? 'You' : 'Owner'
+                                  }</span>
                                   <span>{new Date(response.date).toLocaleString()}</span>
                                 </div>
                               
@@ -488,8 +495,9 @@ return(
                     <div className="flex gap-2">
                       <Textarea
                         value={responseText}
+                        maxLength={100}
                         onChange={(e) => setResponseText(e.target.value)}
-                        placeholder="Type your response to the tenant..."
+                        placeholder={`Type your response to the ${isOwner ? 'tenant' : 'owner'}...`}
                         rows={3}
                         className="flex-1"
                       />
@@ -501,7 +509,7 @@ return(
                       <Button
                         className="bg-secondary hover:bg-secondary/90"
                         onClick={handleSendResponse}
-                        disabled={!responseText.trim()}
+                        disabled={loading}
                       >
                         <Send className="w-4 h-4 mr-2" />
                         {loading ? 'Sending...' : 'Send Response'}

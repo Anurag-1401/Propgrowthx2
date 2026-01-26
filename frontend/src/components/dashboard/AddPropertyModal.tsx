@@ -55,10 +55,9 @@ type PropertyFormValues = z.infer<typeof propertySchema>;
 interface AddPropertyModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPropertyAdded?: (property: PropertyFormValues) => void;
 }
 
-const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyModalProps) => {
+const AddPropertyModal = ({ open, onOpenChange}: AddPropertyModalProps) => {
   const [images, setImages] = useState<(string)[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const id = sessionStorage.getItem('id');
@@ -170,7 +169,6 @@ const AddPropertyModal = ({ open, onOpenChange, onPropertyAdded }: AddPropertyMo
       description: `${data.name} is now live`,
     });
 
-    onPropertyAdded?.(data);
     form.reset();
     setImages([]);
     onOpenChange(false);

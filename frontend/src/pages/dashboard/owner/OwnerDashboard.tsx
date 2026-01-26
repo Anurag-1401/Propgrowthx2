@@ -1,6 +1,6 @@
-import { useState,useEffect } from 'react';
+import { useState} from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,20 +34,18 @@ import EditPropertyModal, { PropertyData } from '@/components/dashboard/EditProp
 import DeletePropertyDialog from '@/components/dashboard/DeletePropertyDialog';
 import PropertyAnalyticsModal from '@/components/dashboard/PropertyAnalyticsModal';
 import { supabase } from '@/lib/supabase';
+import { useData } from '@/context/dataContext';
 
 const OwnerDashboard = () => {
+  const{properties,setProperties,id} = useData();
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<PropertyData | null>(null);
-  const [properties, setProperties] = useState<PropertyData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
-  const id = sessionStorage.getItem('id');
-
-
+  const ownerProp = properties.filter(prop => prop.owner_id === id);
 
   const stats = [
     { label: 'Total Properties', value: '8', icon: Building2, change: '+2 this month' },
@@ -55,27 +53,6 @@ const OwnerDashboard = () => {
     { label: 'Monthly Views', value: '2,847', icon: Eye, change: '+18% vs last month' },
     { label: 'Active Inquiries', value: '24', icon: TrendingUp, change: '6 new today' },
   ];
-
-  useEffect(() => {
-    fetchProperties();
-  }, []);
-
-  const fetchProperties = async () => {
-    setLoading(true);
-
-    const { data, error } = await supabase
-      .from("properties")
-      .select("*")
-      .eq("owner_id", id)
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
-      console.log(data)
-      setProperties(data as PropertyData[]);
-    }
-
-    setLoading(false);
-  };
 
 
   const handleEditClick = (property: PropertyData) => {
@@ -101,46 +78,6 @@ const OwnerDashboard = () => {
 
   const handlePropertyDeleted = (propertyId: string) => {
     setProperties(prev => prev.filter(p => p.id !== propertyId));
-  };
-
-  const transactions = [
-    {
-      id: 1,
-      property: 'Beachfront Condo',
-      type: 'Sale', 
-      amount: 650000,
-      date: '2024-12-15',
-      status: 'completed',
-    },
-    {
-      id: 2,
-      property: 'Downtown Studio',
-      type: 'Rental',
-      amount: 2800,
-      date: '2024-12-10',
-      status: 'completed',
-    },
-    {
-      id: 3,
-      property: 'Office Building',
-      type: 'Lease',
-      amount: 12000,
-      date: '2024-12-01',
-      status: 'pending',
-    },
-  ];
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-success text-primary-foreground">Active</Badge>;
-      case 'pending':
-        return <Badge className="bg-warning text-foreground">Pending</Badge>;
-      case 'completed':
-        return <Badge className="bg-secondary text-secondary-foreground">Completed</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
   };
 
   return (
@@ -171,7 +108,6 @@ const OwnerDashboard = () => {
             <AddPropertyModal 
               open={isAddModalOpen} 
               onOpenChange={setIsAddModalOpen}
-              onPropertyAdded={fetchProperties}
             />
 
             <EditPropertyModal
@@ -284,7 +220,7 @@ const OwnerDashboard = () => {
                 </div>
               </div>
 
-              {properties.length > 0 ? (
+              {ownerProp.length > 0 ? (
                 <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -299,7 +235,7 @@ const OwnerDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {properties.map((property) => (
+                    {ownerProp.map((property) => (
                       <TableRow key={property.id}>
                         <TableCell>
                           <div>

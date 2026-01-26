@@ -32,8 +32,14 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
+import { useData } from '@/context/dataContext';
 
-type ProfileData = {
+type family_members_details = {
+    name: string;
+    phone: string;
+  };
+
+export type ProfileData = {
   id?: string;
   role?: 'tenant' | 'owner';
 
@@ -56,47 +62,28 @@ type ProfileData = {
   id_proof?: string | null;
   background?: string | null;
   family_members?: number | null;
-  family_members_names?: string[] | null;
+  family_members_details?: family_members_details[];
+
+  closed_relative?:{
+    name: string;
+    relation: string;
+    phone: string;
+    address: string;
+  }
 };
 
 
 
 const Profile = () => {
+  const {profile,setProfile,id} = useData();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [idPreview, setIdPreview] = useState<string | null>(null);
 
-  const [profile, setProfile] = useState<ProfileData|null>(null);
-  const id = sessionStorage.getItem('id');
   const role = sessionStorage.getItem('role');
   const isOwner = role === 'owner';
-
-  useEffect(() => {
-  if (profile?.id_proof) {
-    setIdPreview(profile.id_proof);
-  }
-  }, [profile]);
-
-  useEffect(()=>{
-
-    const loadProfile = async () => {
-     const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    setProfile(data);
-  };
-
-  loadProfile();
-}, []);
+  const currProfile = profile?.find(p=>p.id === id);
 
   const [notifications, setNotifications] = useState({
     emailAlerts: true,
@@ -106,7 +93,13 @@ const Profile = () => {
     marketUpdates: false,
   });
 
-  const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+  if (currProfile?.id_proof) {
+    setIdPreview(currProfile.id_proof);
+  }
+  }, [currProfile]);
+
+const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   if (!e.target.files || e.target.files.length === 0) return;
 
   const file = e.target.files[0];
@@ -143,22 +136,55 @@ const Profile = () => {
   setProfile((prev) => {
     if (!prev) return prev;
 
-    if (name === 'family_members') {
-      const count = Number(value);
+    return prev.map((p) => {
+      if (p.id !== id) return p;
 
-      return {
-        ...prev,
-        family_members: count,
-        family_members_names: Array.from(
-          { length: count },
-          (_, i) => prev.family_members_names?.[i] || ''
-        ),
-      };
-    }
+      if (name === 'family_members') {
+        const count = Number(value);
 
-    return { ...prev, [name]: value };
+        return {
+          ...p,
+          family_members: count,
+          family_members_details: Array.from(
+            { length: count },
+            (_, i) =>
+              p.family_members_details?.[i] ?? {
+                name: '',
+                phone: '',
+              }
+          ),
+        };
+      }
+
+      return { ...p, [name]: value };
+    });
   });
 };
+  
+  const handleClosedRelativeChange = (
+    field: 'name' | 'relation' | 'phone' | 'address',
+    value: string
+  ) => {
+    setProfile((prev) => {
+      if (!prev) return prev;
+  
+      return prev.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              closed_relative: {
+                name: p.closed_relative?.name ?? '',
+                relation: p.closed_relative?.relation ?? '',
+                phone: p.closed_relative?.phone ?? '',
+                address: p.closed_relative?.address ?? '',
+                [field]: value,
+              },
+            }
+          : p
+      );
+    });
+  };
+
 
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -262,9 +288,9 @@ const Profile = () => {
                   <div className="flex items-center gap-6">
                     <div className="relative">
                       <div className="w-24 h-24 rounded-full bg-accent flex items-center justify-center overflow-hidden border-4 border-secondary/20">
-                        {avatarPreview || profile?.avatar ? (
+                        {avatarPreview || currProfile?.avatar ? (
                           <img
-                            src={avatarPreview || profile?.avatar || ''}
+                            src={avatarPreview || currProfile?.avatar || ''}
                             alt="Avatar"
                             className="w-full h-full object-cover"
                           />
@@ -303,7 +329,7 @@ const Profile = () => {
                       <Label htmlFor="firstName">First Name</Label>
                       <Input
                         name="name"
-                        value={profile?.name ?? ''}
+                        value={currProfile?.name ?? ''}
                         onChange={handleInputChange}
                         placeholder="Enter name"
                       />
@@ -320,7 +346,7 @@ const Profile = () => {
                         id="email"
                         name="email"
                         type="email"
-                        value={profile?.email ?? ''}
+                        value={currProfile?.email ?? ''}
                         onChange={handleInputChange}
                         disabled
                       />
@@ -333,7 +359,7 @@ const Profile = () => {
                       <Input
                         id="phone"
                         name="phone"
-                        value={profile?.phone ?? ''}
+                        value={currProfile?.phone ?? ''}
                         onChange={handleInputChange}
                         placeholder="Enter phone number"
                       />
@@ -359,32 +385,62 @@ const Profile = () => {
                       type="number"
                       min={0}
                       name="family_members"
-                      value={profile?.family_members ?? ''}
+                      value={currProfile?.family_members ?? ''}
                       onChange={handleInputChange}
                     />
                   </div>
 
-                  {/* Family Member Names */}
-                  {profile?.family_members_names?.map((name, index) => (
-                    <div key={index} className="space-y-2">
-                      <Label>Family Member {index + 1} Name</Label>
-                      <Input
-                        type="text"
-                        value={name}
-                        onChange={(e) => {
-                          const updated = [...profile.family_members_names!];
-                          updated[index] = e.target.value;
+                  {/* Family Member Details */}
+                    {currProfile?.family_members_details?.map((member, index) => (
+                      <div
+                        key={index}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end"
+                      >
+                        {/* Name */}
+                        <div className="space-y-2">
+                          <Label>Family Member {index + 1} Name</Label>
+                          <Input
+                            type="text"
+                            value={member.name}
+                            onChange={(e) => {
+                              const updated = [...currProfile.family_members_details!];
+                              updated[index] = {
+                                ...updated[index],
+                                name: e.target.value,
+                              };
+                            
+                              setProfile((prev) =>
+                                prev ? { ...prev, family_members_details: updated } : prev
+                              );
+                            }}
+                            placeholder="Enter name"
+                          />
+                        </div>
+                          
+                        {/* Phone */}
+                        <div className="space-y-2">
+                          <Label>Family Member {index + 1} Phone</Label>
+                          <Input
+                            type="tel"
+                            value={member.phone ?? ''}
+                            onChange={(e) => {
+                              const updated = [...currProfile.family_members_details!];
+                              updated[index] = {
+                                ...updated[index],
+                                phone: e.target.value,
+                              };
+                            
+                              setProfile((prev) =>
+                                prev ? { ...prev, family_members_details: updated } : prev
+                              );
+                            }}
+                            placeholder="Enter phone number"
+                          />
+                        </div>
+                      </div>
+                    ))}
 
-                          setProfile((prev) =>
-                            prev ? { ...prev, family_members_names: updated } : prev
-                          );
-                        }}
-                        placeholder={`Enter name`}
-                      />
-                    </div>
-                  ))}
                 </CardContent>
-
               </Card>
               )}  
 
@@ -405,7 +461,7 @@ const Profile = () => {
                     <Input
                       id="address"
                       name="address"
-                      value={profile?.address ?? ''}
+                      value={currProfile?.address ?? ''}
                       onChange={handleInputChange}
                       placeholder="Enter street address"
                     />
@@ -416,7 +472,7 @@ const Profile = () => {
                       <Input
                         id="city"
                         name="city"
-                        value={profile?.city ?? ''}
+                        value={currProfile?.city ?? ''}
                         onChange={handleInputChange}
                         placeholder="Enter city"
                       />
@@ -426,7 +482,7 @@ const Profile = () => {
                       <Input
                         id="state"
                         name="state"
-                        value={profile?.state ?? ''}
+                        value={currProfile?.state ?? ''}
                         onChange={handleInputChange}
                         placeholder="Enter state"
                       />
@@ -436,7 +492,7 @@ const Profile = () => {
                       <Input
                         id="zip_code"
                         name="zip_code"
-                        value={profile?.zip_code ?? ''}
+                        value={currProfile?.zip_code ?? ''}
                         onChange={handleInputChange}
                         placeholder="Enter zip code"
                       />
@@ -462,7 +518,7 @@ const Profile = () => {
                     <Label>Company / Business Name</Label>
                     <Input
                       name="company"
-                      value={profile?.company ?? ''}
+                      value={currProfile?.company ?? ''}
                       onChange={handleInputChange}
                       placeholder="Enter business name"
                     />
@@ -472,7 +528,7 @@ const Profile = () => {
                     <Label>Website</Label>
                     <Input
                       name="s_link1"
-                      value={profile?.s_link1 ?? ''}
+                      value={currProfile?.s_link1 ?? ''}
                       onChange={handleInputChange}
                       placeholder="https://"
                     />
@@ -482,7 +538,7 @@ const Profile = () => {
                     <Label>LinkedIn</Label>
                     <Input
                       name="s_link2"
-                      value={profile?.s_link2 ?? ''}
+                      value={currProfile?.s_link2 ?? ''}
                       onChange={handleInputChange}
                       placeholder="https://linkedin.com/in/..."
                     />
@@ -492,7 +548,7 @@ const Profile = () => {
                     <Label>Instagram / Twitter</Label>
                     <Input
                       name="s_link3"
-                      value={profile?.s_link3 ?? ''}
+                      value={currProfile?.s_link3 ?? ''}
                       onChange={handleInputChange}
                       placeholder="https://"
                     />
@@ -519,7 +575,7 @@ const Profile = () => {
                     <Label>Past Residence Address</Label>
                     <Textarea
                       name="past_residence"
-                      value={profile?.past_residence ?? ''}
+                      value={currProfile?.past_residence ?? ''}
                       onChange={handleInputChange}
                       placeholder="Enter previous residence address"
                     />
@@ -552,7 +608,7 @@ const Profile = () => {
                     <Label>Background / Occupation</Label>
                     <Textarea
                       name="background"
-                      value={profile?.background ?? ''}
+                      value={currProfile?.background ?? ''}
                       onChange={handleInputChange}
                       placeholder="Student / Job / Business / Other"
                     />
@@ -565,33 +621,128 @@ const Profile = () => {
                       type="number"
                       min={0}
                       name="family_members"
-                      value={profile?.family_members ?? ''}
+                      value={currProfile?.family_members ?? ''}
                       onChange={handleInputChange}
                     />
                   </div>
                               
-                  {/* Family Member Names */}
-                  {profile?.family_members_names?.map((name, index) => (
-                    <div key={index} className="space-y-2">
+                 {/* Family Member Details */}
+                {currProfile?.family_members_details?.map((member, index) => (
+                  <div
+                    key={index}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end"
+                  >
+                    {/* Name */}
+                    <div className="space-y-2">
                       <Label>Family Member {index + 1} Name</Label>
                       <Input
                         type="text"
-                        value={name}
+                        value={member.name}
                         onChange={(e) => {
-                          const updated = [...profile.family_members_names!];
-                          updated[index] = e.target.value;
+                          const updated = [...currProfile.family_members_details!];
+                          updated[index] = {
+                            ...updated[index],
+                            name: e.target.value,
+                          };
                         
                           setProfile((prev) =>
-                            prev ? { ...prev, family_members_names: updated } : prev
+                            prev ? { ...prev, family_members_details: updated } : prev
                           );
                         }}
-                        placeholder={`Enter name`}
+                        placeholder="Enter name"
                       />
                     </div>
-                  ))}
+                      
+                    {/* Phone */}
+                    <div className="space-y-2">
+                      <Label>Family Member {index + 1} Phone</Label>
+                      <Input
+                        type="tel"
+                        value={member.phone ?? ''}
+                        onChange={(e) => {
+                          const updated = [...currProfile.family_members_details!];
+                          updated[index] = {
+                            ...updated[index],
+                            phone: e.target.value,
+                          };
+                        
+                          setProfile((prev) =>
+                            prev ? { ...prev, family_members_details: updated } : prev
+                          );
+                        }}
+                        placeholder="Enter phone number"
+                      />
+                    </div>
+                  </div>
+                ))}
                 </CardContent>
               </Card>
             )}
+
+              {!isOwner && <Card>
+               <CardHeader>
+                 <CardTitle className="flex items-center gap-2">
+                   <Globe className="w-5 h-5" />
+                   Emergency Contact
+                 </CardTitle>
+               </CardHeader>
+             
+               <CardContent className="space-y-4">
+                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                   {/* Name */}
+                   <div className="space-y-2">
+                     <Label>Name</Label>
+                     <Input
+                       type="text"
+                       value={currProfile?.closed_relative?.name ?? ''}
+                       onChange={(e) =>
+                         handleClosedRelativeChange('name', e.target.value)
+                       }
+                       placeholder="Enter name"
+                     />
+                   </div>
+             
+                   {/* Phone */}
+                   <div className="space-y-2">
+                     <Label>Phone</Label>
+                     <Input
+                       type="tel"
+                       value={currProfile?.closed_relative?.phone ?? ''}
+                       onChange={(e) =>
+                         handleClosedRelativeChange('phone', e.target.value)
+                       }
+                       placeholder="Enter phone number"
+                     />
+                   </div>
+             
+                   {/* Relation */}
+                   <div className="space-y-2">
+                     <Label>Relation</Label>
+                     <Input
+                       type="text"
+                       value={currProfile?.closed_relative?.relation ?? ''}
+                       onChange={(e) =>
+                         handleClosedRelativeChange('relation', e.target.value)
+                       }
+                       placeholder="Father / Mother / Spouse / Brother"
+                     />
+                   </div>
+             
+                   {/* Address */}
+                   <div className="space-y-2 md:col-span-4">
+                     <Label>Residence Address</Label>
+                     <Textarea
+                       value={currProfile?.closed_relative?.address ?? ''}
+                       onChange={(e) =>
+                         handleClosedRelativeChange('address', e.target.value)
+                       }
+                       placeholder="Enter residence address"
+                     />
+                   </div>
+                 </div>
+               </CardContent>
+             </Card>
+             }
 
 
               {/* Notification Settings */}

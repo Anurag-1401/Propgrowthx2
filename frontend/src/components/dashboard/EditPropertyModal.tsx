@@ -86,12 +86,15 @@ export interface PropertyData {
   electricity_available: boolean;
 
   owner_id: string;
-  buyer_id: string | null;
+  buyer_id?: string | null;
 
   views: number;
   inquiries: number;
 
   created_at: string;
+
+  since?: string;
+  endDate?: string;
 }
 
 
