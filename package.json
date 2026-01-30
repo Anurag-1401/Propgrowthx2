@@ -2,9 +2,7 @@
   "name": "propgrowthx2",
   "version": "1.0.0",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build",
-    "start": "cd backend && npm start"
-  },
-  "dependencies": {},
-  "devDependencies": {}
+    "build": "cd frontend && npm run build",
+    "dev": "cd frontend && npm run dev"
+  }
 }
