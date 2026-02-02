@@ -41,6 +41,7 @@ const OwnerTransactions = () => {
   const [filterStatus, setFilterStatus] = useState('all');
 
   const [payments,setPayments] = useState<Transaction[]>(transactions.filter((tx) => tx.owner_id === id));
+  
   // Auto-check for overdue payments and send reminders
   useEffect(() => {
     const checkOverduePayments = () => {

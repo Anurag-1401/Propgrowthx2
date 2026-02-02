@@ -1,6 +1,6 @@
 import { useState,useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +27,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -46,6 +45,7 @@ import EditPropertyModal, { PropertyData } from '@/components/dashboard/EditProp
 import DeletePropertyDialog from '@/components/dashboard/DeletePropertyDialog';
 import PropertyAnalyticsModal from '@/components/dashboard/PropertyAnalyticsModal';
 import { useData } from '@/context/dataContext';
+import DashboardSkeleton from '@/pages/SkeletonLoading';
 
 interface ExtendedPropertyData extends PropertyData {
   listedDate: string;
@@ -53,7 +53,8 @@ interface ExtendedPropertyData extends PropertyData {
 }
 
 const OwnerProperties = () => {
-  const {properties,setProperties,id} = useData();
+  const {properties,setProperties,id,loading} = useData();
+  const navigate = useNavigate();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -64,6 +65,7 @@ const OwnerProperties = () => {
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<ExtendedPropertyData | null>(null);
    
+  if(loading) return <DashboardSkeleton/>
 
   const handleEditClick = (property: ExtendedPropertyData) => {
     setSelectedProperty(property);
@@ -95,12 +97,12 @@ const extendedProperties: ExtendedPropertyData[] = properties.map(
   (property) => ({
     ...property,
     listedDate:
-      (property as any).listedDate ??
+      (property as ExtendedPropertyData).listedDate ??
       property.created_at ??
       new Date().toISOString(),
 
     images:
-      (property as any).images ??
+      (property as ExtendedPropertyData).images ??
       [],
   })
 );
@@ -278,9 +280,12 @@ const ownerProp = extendedProperties.filter((prop) => prop.owner_id === id);
                   </TableHeader>
                   <TableBody>
                     {filteredProperties.map((property) => (
-                      <TableRow key={property.id} className="hover:bg-muted/30">
+                      <TableRow key={property.id} 
+                        className="cursor-pointer hover:bg-muted/30 transition"
+                        onClick={() => navigate(`/property/${property.id}`)}
+                      >
                         <TableCell>
-                          <div className="flex flex-col items-center">
+                          <div className="flex items-start gap-3">
                             <img
                               src={
                               property.images && property.images.length > 0
@@ -294,7 +299,7 @@ const ownerProp = extendedProperties.filter((prop) => prop.owner_id === id);
                               <div className="font-medium text-foreground">
                                 {property.property_name}
                               </div>
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <div className="flex items-start gap-1 text-sm text-muted-foreground">
                                 <MapPin className="w-3 h-3" />
                                 {property.city}
                               </div>
@@ -360,14 +365,22 @@ const ownerProp = extendedProperties.filter((prop) => prop.owner_id === id);
                               </DropdownMenuItem> */}
                               <DropdownMenuItem 
                                 className="cursor-pointer"
-                                onClick={() => handleEditClick(property)}
+                                onClick={(e) => {
+                                e.stopPropagation()
+                                handleEditClick(property)
+                                }
+                              }
                               >
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit Property
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 className="cursor-pointer text-destructive"
-                                onClick={() => handleDeleteClick(property)}
+                                 onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteClick(property)
+                                }
+                              }
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Delete

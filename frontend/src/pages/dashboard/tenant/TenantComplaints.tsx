@@ -1,4 +1,4 @@
-import { useState} from 'react';
+import { useState,useEffect} from 'react';
 import {
   ArrowLeft,
   Plus,
@@ -12,20 +12,23 @@ import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import ComplaintList from '@/components/dashboard/ComplaintList';
 import { useData } from '@/context/dataContext';
+import DashboardSkeleton from '@/pages/SkeletonLoading';
 
 
 
 const TenantComplaints = () => {
-  const { toast } = useToast();
+  const {complaints,setComplaints,id,loading} = useData();
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+    
+  if(loading) return <DashboardSkeleton/>
 
-  const {complaints,id} = useData();
-
+  const comp = complaints.filter(c => c.tenant_id === id)
 
 
   return (
@@ -65,8 +68,8 @@ const TenantComplaints = () => {
             />
 
              <ComplaintList
-              complaints={complaints.filter((c)=> c.tenant_id === id)}
-              setComplaints={useData().setComplaints}
+              complaints={comp}
+              setComplaints={setComplaints}
               onSelect={(complaint) => {
                 setSelectedComplaint(complaint);
                 setIsDetailModalOpen(true);

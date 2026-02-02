@@ -37,7 +37,7 @@ const propertySchema = z.object({
   state: z.string().min(2, 'State is required').max(50),
   zipCode: z.string().min(5, 'Valid zip code required').max(10),
   listing_type: z.enum(['For Rent', 'For Lease']),
-  status: z.enum(['available','under maintenance']),
+  status: z.enum(['available','under maintenance','occupied']),
   due_date: z.date().optional(),
   property_type: z.enum(['Apartment', 'House', 'Condo', 'Townhouse', 'Studio', 'Commercial', 'Penthouse', 'Cabin', 'Villa']),
   monthly_rent: z.string().min(1, 'Price is required').refine((val) => !isNaN(Number(val)) && Number(val) > 0, 'Price must be a positive number'),

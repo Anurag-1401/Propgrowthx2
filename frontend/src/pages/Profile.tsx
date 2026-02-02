@@ -1,6 +1,6 @@
 import { useState,useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,9 +30,10 @@ import {
   Globe,
   Briefcase,
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useData } from '@/context/dataContext';
+import DashboardSkeleton from './SkeletonLoading';
 
 type family_members_details = {
     name: string;
@@ -75,15 +76,11 @@ export type ProfileData = {
 
 
 const Profile = () => {
-  const {profile,setProfile,id} = useData();
-  const { toast } = useToast();
+  const {profile,setProfile} = useData();
+  const { id } = useParams<{ id: string }>();
   const [isLoading, setIsLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [idPreview, setIdPreview] = useState<string | null>(null);
-
-  const role = sessionStorage.getItem('role');
-  const isOwner = role === 'owner';
-  const currProfile = profile?.find(p=>p.id === id);
 
   const [notifications, setNotifications] = useState({
     emailAlerts: true,
@@ -93,11 +90,18 @@ const Profile = () => {
     marketUpdates: false,
   });
 
-  useEffect(() => {
+  const currProfile = profile?.find(p=>p.id === id);
+  
+   useEffect(() => {
   if (currProfile?.id_proof) {
     setIdPreview(currProfile.id_proof);
   }
   }, [currProfile]);
+
+  if (!currProfile) return <DashboardSkeleton/>
+
+  const isOwner = currProfile.role === 'owner';
+  const currRole = sessionStorage.getItem('role') === currProfile.role;
 
 const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   if (!e.target.files || e.target.files.length === 0) return;
@@ -112,12 +116,12 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       setIdPreview(result);
 
       setProfile((prev) =>
-        prev
-          ? {
-              ...prev,
-              id_proof: result,
-            }
-          : prev
+        prev.map(p=>
+          p.id === id ?
+           {...p,id_proof: result} : 
+           p
+        )
+         
       );
     }
   };
@@ -202,7 +206,11 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (typeof result === 'string') {
       setAvatarPreview(result);
       setProfile((prev) =>
-        prev ? { ...prev, avatar: result } : prev
+        prev.map(p=>
+          p.id === id ?
+          {...p,avatar:result} :
+          p
+        )
       );
     }
   };
@@ -220,31 +228,40 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   const { error } = await supabase
     .from('profiles')
     .update({
-      ...profile,
+      name: currProfile.name,
+      phone: currProfile.phone,
+      avatar: currProfile.avatar,
+      address: currProfile.address,
+      city: currProfile.city,
+      state: currProfile.state,
+      zip_code: currProfile.zip_code,
+      s_link1: currProfile.s_link1,
+      s_link2: currProfile.s_link2,
+      s_link3: currProfile.s_link3,
+      company: currProfile.company,
+      past_residence: currProfile.past_residence,
+      id_proof: currProfile.id_proof,
+      background: currProfile.background,
+      family_members: currProfile.family_members,
+      family_members_details: currProfile.family_members_details,
+      closed_relative: currProfile.closed_relative,
     })
     .eq('id', id);
 
   setIsLoading(false);
 
   if (error) {
-    toast({
-      title: 'Error',
-      description: error.message,
-      variant: 'destructive',
-    });
+    toast.error('Profile not save')
     return;
   }
-
-  toast({
-    title: 'Profile Updated',
-    description: 'Your profile has been successfully updated.',
-  });
+  toast.success('Profile saved!')
+  
   };
 
   return (
     <>
       <Helmet>
-        <title>Owner Profile | PropGrowthX</title>
+        <title>Profile | PropGrowthX</title>
         <meta
           name="description"
           content="Manage your owner profile, settings, and preferences on PropGrowthX."
@@ -305,6 +322,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                         <Camera className="w-4 h-4" />
                       </label>
                       <input
+                        disabled={!currRole}
                         id="avatar-upload"
                         type="file"
                         accept="image/*"
@@ -328,6 +346,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                     <div className="space-y-2">
                       <Label htmlFor="firstName">First Name</Label>
                       <Input
+                        disabled={!currRole}
                         name="name"
                         value={currProfile?.name ?? ''}
                         onChange={handleInputChange}
@@ -357,6 +376,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                         Phone Number
                       </Label>
                       <Input
+                        disabled={!currRole}
                         id="phone"
                         name="phone"
                         value={currProfile?.phone ?? ''}
@@ -382,6 +402,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                   <div className="space-y-2 w-40">
                     <Label>Family Members</Label>
                     <Input
+                    disabled={!currRole}
                       type="number"
                       min={0}
                       name="family_members"
@@ -400,6 +421,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                         <div className="space-y-2">
                           <Label>Family Member {index + 1} Name</Label>
                           <Input
+                          disabled={!currRole}
                             type="text"
                             value={member.name}
                             onChange={(e) => {
@@ -410,8 +432,12 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                               };
                             
                               setProfile((prev) =>
-                                prev ? { ...prev, family_members_details: updated } : prev
-                              );
+                            prev.map(p=>
+                              p.id === id?
+                               { ...p, family_members_details: updated } 
+                              : p
+                            )
+                          );
                             }}
                             placeholder="Enter name"
                           />
@@ -421,6 +447,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                         <div className="space-y-2">
                           <Label>Family Member {index + 1} Phone</Label>
                           <Input
+                          disabled={!currRole}
                             type="tel"
                             value={member.phone ?? ''}
                             onChange={(e) => {
@@ -431,8 +458,12 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                               };
                             
                               setProfile((prev) =>
-                                prev ? { ...prev, family_members_details: updated } : prev
-                              );
+                            prev.map(p=>
+                              p.id === id?
+                               { ...p, family_members_details: updated } 
+                              : p
+                            )
+                          );
                             }}
                             placeholder="Enter phone number"
                           />
@@ -459,6 +490,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                   <div className="space-y-2">
                     <Label htmlFor="address">Street Address</Label>
                     <Input
+                      disabled={!currRole}
                       id="address"
                       name="address"
                       value={currProfile?.address ?? ''}
@@ -470,6 +502,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                     <div className="space-y-2">
                       <Label htmlFor="city">City</Label>
                       <Input
+                        disabled={!currRole}
                         id="city"
                         name="city"
                         value={currProfile?.city ?? ''}
@@ -480,6 +513,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                     <div className="space-y-2">
                       <Label htmlFor="state">State</Label>
                       <Input
+                        disabled={!currRole}
                         id="state"
                         name="state"
                         value={currProfile?.state ?? ''}
@@ -490,6 +524,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                     <div className="space-y-2">
                       <Label htmlFor="zip_code">Zip Code</Label>
                       <Input
+                        disabled={!currRole}
                         id="zip_code"
                         name="zip_code"
                         value={currProfile?.zip_code ?? ''}
@@ -517,6 +552,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                   <div className="space-y-2">
                     <Label>Company / Business Name</Label>
                     <Input
+                    disabled={!currRole}
                       name="company"
                       value={currProfile?.company ?? ''}
                       onChange={handleInputChange}
@@ -527,6 +563,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                   <div className="space-y-2">
                     <Label>Website</Label>
                     <Input
+                    disabled={!currRole}
                       name="s_link1"
                       value={currProfile?.s_link1 ?? ''}
                       onChange={handleInputChange}
@@ -537,6 +574,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                   <div className="space-y-2">
                     <Label>LinkedIn</Label>
                     <Input
+                    disabled={!currRole}
                       name="s_link2"
                       value={currProfile?.s_link2 ?? ''}
                       onChange={handleInputChange}
@@ -547,6 +585,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                   <div className="space-y-2">
                     <Label>Instagram / Twitter</Label>
                     <Input
+                    disabled={!currRole}
                       name="s_link3"
                       value={currProfile?.s_link3 ?? ''}
                       onChange={handleInputChange}
@@ -574,6 +613,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                   <div className="space-y-2">
                     <Label>Past Residence Address</Label>
                     <Textarea
+                      disabled={!currRole}
                       name="past_residence"
                       value={currProfile?.past_residence ?? ''}
                       onChange={handleInputChange}
@@ -586,6 +626,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                     <Label>ID Proof (Aadhaar / PAN / Passport)</Label>
                               
                     <Input
+                      disabled={!currRole}
                       type="file"
                       accept="image/*"
                       onChange={handleIdProofChange}
@@ -607,6 +648,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                   <div className="space-y-2">
                     <Label>Background / Occupation</Label>
                     <Textarea
+                      disabled={!currRole}
                       name="background"
                       value={currProfile?.background ?? ''}
                       onChange={handleInputChange}
@@ -618,6 +660,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                   <div className="space-y-2 w-40">
                     <Label>Family Members</Label>
                     <Input
+                    disabled={!currRole}
                       type="number"
                       min={0}
                       name="family_members"
@@ -636,6 +679,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                     <div className="space-y-2">
                       <Label>Family Member {index + 1} Name</Label>
                       <Input
+                      disabled={!currRole}
                         type="text"
                         value={member.name}
                         onChange={(e) => {
@@ -646,7 +690,11 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                           };
                         
                           setProfile((prev) =>
-                            prev ? { ...prev, family_members_details: updated } : prev
+                            prev.map(p=>
+                              p.id === id?
+                               { ...p, family_members_details: updated } 
+                              : p
+                            )
                           );
                         }}
                         placeholder="Enter name"
@@ -657,6 +705,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                     <div className="space-y-2">
                       <Label>Family Member {index + 1} Phone</Label>
                       <Input
+                      disabled={!currRole}
                         type="tel"
                         value={member.phone ?? ''}
                         onChange={(e) => {
@@ -667,7 +716,11 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                           };
                         
                           setProfile((prev) =>
-                            prev ? { ...prev, family_members_details: updated } : prev
+                            prev.map(p=>
+                              p.id === id?
+                               { ...p, family_members_details: updated } 
+                              : p
+                            )
                           );
                         }}
                         placeholder="Enter phone number"
@@ -693,6 +746,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                    <div className="space-y-2">
                      <Label>Name</Label>
                      <Input
+                     disabled={!currRole}
                        type="text"
                        value={currProfile?.closed_relative?.name ?? ''}
                        onChange={(e) =>
@@ -706,6 +760,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                    <div className="space-y-2">
                      <Label>Phone</Label>
                      <Input
+                     disabled={!currRole}
                        type="tel"
                        value={currProfile?.closed_relative?.phone ?? ''}
                        onChange={(e) =>
@@ -719,6 +774,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                    <div className="space-y-2">
                      <Label>Relation</Label>
                      <Input
+                     disabled={!currRole}
                        type="text"
                        value={currProfile?.closed_relative?.relation ?? ''}
                        onChange={(e) =>
@@ -732,6 +788,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                    <div className="space-y-2 md:col-span-4">
                      <Label>Residence Address</Label>
                      <Textarea
+                     disabled={!currRole}
                        value={currProfile?.closed_relative?.address ?? ''}
                        onChange={(e) =>
                          handleClosedRelativeChange('address', e.target.value)
@@ -746,7 +803,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
 
               {/* Notification Settings */}
-              <Card>
+              {currRole && <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Bell className="w-5 h-5" />
@@ -857,10 +914,10 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                     />
                   </div>
                 </CardContent>
-              </Card>
+              </Card>}
 
               {/* Quick Links */}
-              <Card>
+              {currRole && <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Shield className="w-5 h-5" />
@@ -901,10 +958,10 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                     </Button>
                   </div>
                 </CardContent>
-              </Card>
+              </Card>}
 
               {/* Save Button */}
-              <div className="flex justify-end gap-4">
+              {currRole && <div className="flex justify-end gap-4">
                 <Button variant="outline" asChild>
                   <Link to="/dashboard/owner">Cancel</Link>
                 </Button>
@@ -922,7 +979,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                     </>
                   )}
                 </Button>
-              </div>
+              </div>}
             </div>
           </div>
         </div>

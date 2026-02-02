@@ -20,10 +20,14 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useData } from "../../../context/dataContext";
+import DashboardSkeleton from '@/pages/SkeletonLoading';
 
 
 const TenantDashboard = () => {
-  const { properties, transactions, loading ,id} = useData();
+  const navigate = useNavigate();
+  const { properties, transactions,id,loading} = useData();
+
+  if(loading) return <DashboardSkeleton/>
 
   const stats = [
     // { label: 'Saved Properties', value: '2', icon: Heart },
@@ -31,10 +35,11 @@ const TenantDashboard = () => {
     { label: 'Rented', value: '2', icon: CheckCircle2 },
     { label: 'Property Views', value: '6', icon: Search },
   ];
+  console.log(id)
 
-  const myProperties = properties.filter((p)=>p.buyer_id === id)
+  const myProperties = properties.filter((p)=>p.buyer_id === id);
+  const myTxs = transactions.filter(t => t.tenant_id === id);
 
-  const navigate = useNavigate();
 
   return (
     <>
@@ -134,7 +139,9 @@ const TenantDashboard = () => {
                     {myProperties.map((property) => (
                       <div
                         key={property.id}
-                        className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-muted rounded-xl gap-4"
+                        className="flex flex-col md:flex-row md:items-center cursor-pointer
+                        justify-between p-4 bg-muted rounded-xl gap-4"
+                        onClick={() => navigate(`/property/${property.id}`)}
                       >
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center">
@@ -197,7 +204,7 @@ const TenantDashboard = () => {
                   </h2>
 
                   <div className="space-y-4">
-                    {transactions.map((tx) => (
+                    {myTxs.map((tx) => (
                       <div
                         key={tx.id}
                         className="flex items-start justify-between pb-4 border-b border-border last:border-0 last:pb-0"

@@ -3,11 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { Home, User, Lock, UserCogIcon} from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import "../styles/authPage.css";
+import { supabase } from "@/lib/supabase";
+import bcrypt from "bcryptjs";
+import { useSearchParams } from 'react-router-dom';
+import { validateInvite } from "@/hooks/GenerateInvite";
+import { useData } from "@/context/dataContext";
+
 
 type Role = "owner" | "tenant";
 
 const AuthPage: React.FC = () => {
   const navigate = useNavigate();
+  const {setId} = useData();
 
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -20,8 +27,24 @@ const AuthPage: React.FC = () => {
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
+  const [inviteValid,setInviteValid] = useState(false);
+  const [params] = useSearchParams();
+  const inviteToken = params.get('token');
 
   const token = sessionStorage.getItem('token')
+
+    useEffect(() => {
+    if (!inviteToken) return;
+
+    validateInvite(inviteToken)
+      .then(() => {
+        setInviteValid(true);
+      })
+      .catch(() => {
+        setInviteValid(false);
+      });
+  }, [inviteToken]);
+
 
 
    const handleSubmit = async (e: React.FormEvent) => {
@@ -29,37 +52,67 @@ const AuthPage: React.FC = () => {
     setError("");
     setMessage("");
     setLoading(true);
+      
+        try {
+          if (!email || !password) {
+            setError("Email and password are required");
+            return;
+          }
 
-    const url = isLogin
-      ? "http://localhost:5000/api/auth/login"
-      : "http://localhost:5000/api/auth/register";
+          if(!isLogin){      
+          const hashedPassword = await bcrypt.hash(password, 10);
+          const { data, error } = await supabase
+            .from("profiles")
+            .insert({
+              email,
+              role:inviteValid ? 'tenant' : {role},
+              password:hashedPassword,
+            })
+            .select()
+            .single();
 
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role }),
-      });
+            if (error) {
+              setError(error.message);
+              return;
+            }
+             setIsLogin(true);
+             setMessage("Registration successful. Please login.");
+            return
+          }
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Something went wrong");
+            const { data: user, error } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("email", email)
+            .single();
+      
+            if (error || !user) {
+                  setError("Invalid email");
+                  return;
+                }  
+          const isMatch = await bcrypt.compare(password, user.password);
+          if (!isMatch) {
+            throw new Error("Invalid password");
+          }
+          const token = `${user.id}.${user.role}.${Date.now()}`;
+          sessionStorage.setItem("token", token);
+          sessionStorage.setItem("role", user.role);
+          setId(user.id);
+          sessionStorage.setItem("id", user.id);
 
-      if (isLogin) {
-        sessionStorage.setItem("token", data.token);
-      sessionStorage.setItem("role", data.role);
-      sessionStorage.setItem("id", data.id);
-        navigate(data.role === "owner" ? "/dashboard/owner" : "/dashboard/tenant");
-      } else {
-        setIsLogin(true);
-        setMessage("Registration successful. Please login.");
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+          navigate(
+            user.role === "owner"
+              ? "/dashboard/owner"
+              : inviteValid ? `/profile/${user.id}` : "/dashboard/tenant" 
+          );
+
+        } catch (err) {
+          console.log("Unexpected error:", err.message);
+              setError(err.message || "Something went wrong");
+        } finally {
+        setLoading(false);
+        }
   };
-
 
   const handleGoogleLogin = () => {
     window.location.href =
@@ -224,7 +277,7 @@ const verifyOtp = async () => {
             onChange={(e) => setRole(e.target.value as Role)}
             className="auth-input"
           >
-            <option value="owner">Owner</option>
+            {!inviteValid && <option value="owner">Owner</option>}
             <option value="tenant">Tenant</option>
           </select>
         </div>

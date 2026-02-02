@@ -27,9 +27,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Upload } from "lucide-react";
 import { useData } from "@/context/dataContext";
+import { PropertyData } from "../dashboard/EditPropertyModal";
 
 export interface Complaint {
   id: string;
@@ -83,7 +84,8 @@ const AddComplaintModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const tenantId = sessionStorage.getItem("id");
   const [images, setImages] = useState<(string)[]>([]);
-
+  const [myProperties,setMyProperties] = useState<PropertyData[]>([]);
+  
     const form = useForm<ComplaintFormValues>({
     resolver: zodResolver(complaintSchema),
     defaultValues: {
@@ -96,7 +98,9 @@ const AddComplaintModal = ({
     },
   });
 
-  const myProperties = properties.filter((p)=>p.buyer_id === id)
+  useEffect(()=>{
+    setMyProperties(properties.filter((p)=>p.buyer_id === id));
+  },[id, properties])
   
  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   if (!e.target.files) return;

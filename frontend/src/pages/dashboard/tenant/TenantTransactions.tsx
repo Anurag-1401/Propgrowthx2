@@ -43,7 +43,7 @@ export interface Transaction {
 }
 
 const TenantTransactions = () => {
-  const {transactions,id,properties} = useData();
+  const {transactions,properties} = useData();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
