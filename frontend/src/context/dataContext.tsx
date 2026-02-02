@@ -7,6 +7,7 @@ import { ProfileData } from "@/pages/Profile";
 
 type DataContextType = {
   id?: string | null;
+  setId: React.Dispatch<React.SetStateAction<string | null>>;
   properties: PropertyData[];
   setProperties?: React.Dispatch<React.SetStateAction<PropertyData[]>>;
   transactions: Transaction[];
@@ -29,12 +30,23 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [complaints, setComplaints] = useState<Complaint[]>([]);
     
-    const [profile, setProfile] = useState<ProfileData[]|null>(null);
-    const id = sessionStorage.getItem('id');
+    const [profile, setProfile] = useState<ProfileData[]>([]);
+    const [id, setId] = useState<string | null>(sessionStorage.getItem('id'));
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-  const fetchAllData = async () => {
+      const storedId = sessionStorage.getItem('id');
+      setId(storedId);
+    }, []);
+
+
+    useEffect(() => {
+      if(!id) {
+        setLoading(false);
+        return;
+      }
+
+    const fetchAllData = async () => {
     setLoading(true);
 
     try {
@@ -72,6 +84,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
             value={{
                 id,
+                setId,
                 properties, 
                 setProperties,
                 transactions,

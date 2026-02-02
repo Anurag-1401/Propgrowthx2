@@ -38,8 +38,8 @@ const propertySchema = z.object({
   state: z.string().min(2, 'State is required').max(50),
   zipCode: z.string().min(5, 'Valid zip code required').max(10),
   listing_type: z.enum(['For Rent', 'For Lease']),
-  due_date: z.date().optional(),
-  status: z.enum(['available','under maintenance']),
+  due_date: z.date().optional(), 
+  status: z.enum(['available','under maintenance','occupied']),
   property_type: z.enum(['Apartment', 'House', 'Condo', 'Townhouse', 'Studio', 'Commercial', 'Penthouse', 'Cabin', 'Villa']),
   monthly_rent: z.string().min(1, 'Price is required').refine((val) => !isNaN(Number(val)) && Number(val) > 0, 'Price must be a positive number'),
   bedrooms: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, 'Must be 0 or more'),
@@ -54,6 +54,7 @@ const propertySchema = z.object({
 type PropertyFormValues = z.infer<typeof propertySchema>;
 
 export interface PropertyData {
+  past: string;
   id: string;
 
   property_name: string;
@@ -143,7 +144,7 @@ const [isSubmitting, setIsSubmitting] = useState(false);
         state: state || '',
         zipCode: '00000',
         listing_type: (property.listing_type as 'For Rent' | 'For Lease'),
-        status: (property.status as 'available' | 'under maintenance'),
+        status: (property.status as 'available' | 'under maintenance' | 'occupied'),
         due_date: property.due_date ? new Date(property.due_date) : new Date(),
         property_type: (property.property_type as PropertyFormValues['property_type']) || 'Apartment',
         monthly_rent: property.monthly_rent?.toString() || '',
@@ -341,7 +342,7 @@ const onSubmit = async (data: PropertyFormValues) => {
 
                 <FormField
                 control={form.control}
-                name="status"
+                name="status" 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
@@ -354,6 +355,7 @@ const onSubmit = async (data: PropertyFormValues) => {
                       <SelectContent>
                         {/* <SelectItem value="For Sale">For Sale</SelectItem> */}
                         <SelectItem value="available">Available</SelectItem>
+                        <SelectItem value="occupied">Occupied</SelectItem>
                         <SelectItem value="under maintenance">Under Maintenance</SelectItem>
                       </SelectContent>
                     </Select>

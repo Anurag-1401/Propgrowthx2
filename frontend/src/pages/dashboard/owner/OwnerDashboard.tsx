@@ -1,4 +1,4 @@
-import { useState} from 'react';
+import { useState,useEffect} from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -6,19 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Building2,
-  Plus,
   TrendingUp,
   DollarSign,
   Eye,
   Edit,
   Trash2,
-  BarChart3,
-  Clock,
-  CheckCircle2,
   ArrowRight,
   FileText,
-  LogOut,
-  MessageSquare
+  MessageSquare,
+  MapPin
 } from 'lucide-react';
 import {
   Table,
@@ -28,23 +24,26 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import AddPropertyModal from '@/components/dashboard/AddPropertyModal';
 import EditPropertyModal, { PropertyData } from '@/components/dashboard/EditPropertyModal';
 import DeletePropertyDialog from '@/components/dashboard/DeletePropertyDialog';
 import PropertyAnalyticsModal from '@/components/dashboard/PropertyAnalyticsModal';
-import { supabase } from '@/lib/supabase';
 import { useData } from '@/context/dataContext';
+import { useNavigate } from 'react-router-dom';
+import DashboardSkeleton from '@/pages/SkeletonLoading';
 
 const OwnerDashboard = () => {
-  const{properties,setProperties,id} = useData();
+  const{properties,setProperties,id,loading} = useData();
+  const navigate = useNavigate();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<PropertyData | null>(null);
-
+    
+  if(loading) return <DashboardSkeleton/>
+  
   const ownerProp = properties.filter(prop => prop.owner_id === id);
 
   const stats = [
@@ -236,14 +235,29 @@ const OwnerDashboard = () => {
                   </TableHeader>
                   <TableBody>
                     {ownerProp.map((property) => (
-                      <TableRow key={property.id}>
+                      <TableRow key={property.id}
+                      className="cursor-pointer hover:bg-muted/30 transition"
+                      onClick={() => navigate(`/property/${property.id}`)}
+                      > 
                         <TableCell>
-                          <div>
-                            <div className="font-medium text-foreground">
-                              {property.property_name}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {property.city}
+                          <div className="flex items-start gap-2">
+                            <img
+                              src={
+                              property.images && property.images.length > 0
+                                ? property.images[0]
+                                : "/placeholder-property.jpg"
+                            }
+                              alt={property.property_name}
+                              className="w-16 h-12 rounded-lg object-cover"
+                            />
+                            <div>
+                              <div className="font-medium text-foreground">
+                                {property.property_name}
+                              </div>
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <MapPin className="w-3 h-3" />
+                                {property.city}
+                              </div>
                             </div>
                           </div>
                         </TableCell>
@@ -268,7 +282,11 @@ const OwnerDashboard = () => {
                             <Button 
                               variant="ghost" 
                               size="icon"
-                              onClick={() => handleEditClick(property)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleEditClick(property)
+                                }
+                              }
                               title="Edit Property"
                             >
                               <Edit className="w-4 h-4" />
@@ -277,7 +295,11 @@ const OwnerDashboard = () => {
                               variant="ghost" 
                               size="icon" 
                               className="text-destructive"
-                              onClick={() => handleDeleteClick(property)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteClick(property)
+                                }
+                              }
                               title="Delete Property"
                             >
                               <Trash2 className="w-4 h-4" />

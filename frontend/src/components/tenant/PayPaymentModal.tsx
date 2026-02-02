@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "../ui/input";
 import { useData } from "@/context/dataContext";
+import { PropertyData } from "../dashboard/EditPropertyModal";
 
 interface PayPaymentModalProps {
   open: boolean;
@@ -22,7 +23,7 @@ const PayPaymentModal = ({
   open,
   onOpenChange,
 }: PayPaymentModalProps) => {
-  const { properties,profile ,id} = useData();
+  const { properties,id} = useData();
   const [loading, setLoading] = useState(false);
   const userId = sessionStorage.getItem("id");
 
@@ -30,16 +31,18 @@ const PayPaymentModal = ({
   const [type, setType] = useState("rent");
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("UPI");
-
-    const myProperties = properties.filter((p)=>p.buyer_id === id)
-
+  const [myProperties,setMyProperties] = useState<PropertyData[]>([]);
+  
+useEffect(()=>{
+    setMyProperties(properties.filter((p)=>p.buyer_id === id));
+  },[id, properties])
 
   useEffect(() => {
   const selected = myProperties.find(p => p.id === propertyId);
   if (selected) {
     setAmount(String(selected.monthly_rent));
   }
-}, [propertyId]);
+}, [myProperties, propertyId]);
 
   const handlePay = async () => {
      if (!propertyId || !amount) {
