@@ -19,8 +19,8 @@ export async function generateInvite(propertyId: string,id:string) {
 
   if (error) throw error;
 
-  return `http://localhost:8080/setPassword?token=${token}&propId=${propertyId}`;
-  // return `${url}/setPassword?token=${token}&propId=${propertyId}`;
+  // return `http://localhost:8080/setPassword?token=${token}&propId=${propertyId}`;
+  return `${url}/setPassword?token=${token}&propId=${propertyId}`;
 }
 
 
