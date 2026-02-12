@@ -259,6 +259,7 @@ export default function Navbar() {
           )}
 
           <Link to="/contact"   className={`nav-link ${isActive("/contact")}`}>Support</Link>
+          <Link to="/about-us" className={`nav-link ${isActive("/about-us")}`}>About Us</Link>
 
           {token && <Link to={`/profile/${id}`}   className={`nav-link ${isActive("/profile")}`}>Profile</Link>}
 
@@ -317,6 +318,7 @@ export default function Navbar() {
           )}
 
           <Link to="/contact" className={`nav-link ${isActive("/contact")}`}>Support</Link>
+          <Link to="/about-us" className={`nav-link ${isActive("/about-us")}`}>About Us</Link>
 
           {token && <Link to={`/profile/${id}`}  className={`nav-link ${isActive("/profile")}`}>Profile</Link>}
 

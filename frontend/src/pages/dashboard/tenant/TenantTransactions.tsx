@@ -43,7 +43,9 @@ export interface Transaction {
 }
 
 const TenantTransactions = () => {
-  const {transactions,properties} = useData();
+  const {transactions,properties,id} = useData();
+  const myTxs = transactions.filter(t=>t.tenant_id === id)
+  const myProp = properties.find(p => p.buyer_id === id)
 
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -62,7 +64,7 @@ const TenantTransactions = () => {
   pendingPayments,
   overduePayments,
   upcomingPayments,
-} = computeTransactionFilters(transactions, searchTerm, typeFilter);
+} = computeTransactionFilters(myTxs, searchTerm, typeFilter,myProp);
 
 
  const stats = [
@@ -175,7 +177,7 @@ const TenantTransactions = () => {
                         <div key={tx.id} className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2">
                             <Home className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">{properties.find(p => p.id === tx.property_id)?.property_name}</span>
+                            <span className="text-muted-foreground">{myProp?.property_name}</span>
                             <span className="text-muted-foreground">•</span>
                             <span className="text-muted-foreground capitalize">{tx.type}</span>
                           </div>

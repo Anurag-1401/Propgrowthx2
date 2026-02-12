@@ -58,6 +58,7 @@ export type ProfileData = {
   s_link2: string | null;
   s_link3: string | null;
   company?: string | null;
+  comp_address?: string | null;
 
   past_residence?: string | null;
   id_proof?: string | null;
@@ -239,6 +240,7 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       s_link2: currProfile.s_link2,
       s_link3: currProfile.s_link3,
       company: currProfile.company,
+      comp_address:currProfile.comp_address,
       past_residence: currProfile.past_residence,
       id_proof: currProfile.id_proof,
       background: currProfile.background,
@@ -482,9 +484,6 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                     <MapPin className="w-5 h-5" />
                     Address
                   </CardTitle>
-                  <CardDescription>
-                    Your business address for correspondence
-                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -536,15 +535,14 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                 </CardContent>
               </Card>
               
-              {isOwner && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Briefcase className="w-5 h-5" />
-                    Business & Social Links
+                    Social Links
                   </CardTitle>
                   <CardDescription>
-                    Manage your business identity and social presence
+                    Manage your social presence
                   </CardDescription>
                 </CardHeader>
 
@@ -557,6 +555,18 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                       value={currProfile?.company ?? ''}
                       onChange={handleInputChange}
                       placeholder="Enter business name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Street Address</Label>
+                    <Input
+                      disabled={!currRole}
+                      id="comp_address"
+                      name="comp_address"
+                      value={currProfile?.comp_address ?? ''}
+                      onChange={handleInputChange}
+                      placeholder="Enter company/business address"
                     />
                   </div>
 
@@ -594,7 +604,6 @@ const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                   </div>
                 </CardContent>
               </Card>
-            )}
 
             {!isOwner && (
               <Card>

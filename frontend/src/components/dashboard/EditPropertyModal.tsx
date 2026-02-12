@@ -95,7 +95,7 @@ export interface PropertyData {
   created_at: string;
 
   since?: string;
-  endDate?: string;
+  end_date?: string;
 }
 
 

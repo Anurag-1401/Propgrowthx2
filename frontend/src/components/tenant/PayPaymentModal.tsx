@@ -42,7 +42,8 @@ useEffect(()=>{
   if (selected) {
     setAmount(String(selected.monthly_rent));
   }
-}, [myProperties, propertyId]);
+  }, [myProperties, propertyId]);
+
 
   const handlePay = async () => {
      if (!propertyId || !amount) {
@@ -56,17 +57,19 @@ useEffect(()=>{
 
     setLoading(true);
 
+    const prop = myProperties.find(p => p.id === propertyId);
+
     const { error } = await supabase.from("payments").insert([
       {
         tenant_id: userId,
-        owner_id: properties.find(p => p.id === propertyId)?.owner_id,
+        owner_id: prop?.owner_id,
         property_id: propertyId,
         type: type,
         amount: Number(amount),
         status: "completed",
         date: new Date().toISOString(),
         payment_method: "UPI",
-        due_date: myProperties.find(p => p.id === propertyId)?.due_date || null,
+        due_date: prop?.due_date ||  null,
         reference_no: `TXN-${Date.now()}`,
       },
     ]);
