@@ -34,12 +34,17 @@ import {
   Edit,
   Trash2,
   QrCode,
+  Copy,
+  MessageCircle,
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useData } from '@/context/dataContext';
 import EditPropertyModal, { PropertyData } from '@/components/dashboard/EditPropertyModal';
 import DeletePropertyDialog from '@/components/dashboard/DeletePropertyDialog';
 import { generateInvite } from '@/hooks/GenerateInvite';
+import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import DashboardSkeleton from './SkeletonLoading';
 
 const PropertyDetails = () => {
   const {properties,profile,setProperties} = useData();
@@ -53,6 +58,32 @@ const PropertyDetails = () => {
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [showShareOptions, setShowShareOptions] = useState(false);
+  const [pastTenants, setPastTenants] = useState([]);
+
+  const property = id ? properties.find(p => p.id === id) : null;
+
+  useEffect(() => {
+  const fetchPastTenants = async () => {
+    const { data, error } = await supabase
+      .from("property_past_tenants")
+      .select("*")
+      .eq("property_id", property.id)
+      .order("end_date", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setPastTenants(data ?? []);
+  };
+
+  if (property?.id) {
+    fetchPastTenants();
+  }
+}, [property?.id]);
+
 
 
     const formatTime = (seconds: number) => {
@@ -86,7 +117,61 @@ const PropertyDetails = () => {
     }
   };
 
-  const property = id ? properties.find(p => p.id === id) : null;
+  const handleShare = async () => {
+  if (!inviteUrl) return;
+
+  const text = `Join the property using this invite link (valid for 10 minutes):\n${inviteUrl}`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "PropGrowthX – Tenant Invite",
+        text,
+        url: inviteUrl,
+      });
+      return;
+    } catch (err) {
+      console.log("Share cancelled");
+    }
+  }
+
+  setShowShareOptions(true);
+};
+
+const copyInviteLink = async () => {
+  if (!inviteUrl) return;
+
+  await navigator.clipboard.writeText(inviteUrl);
+  toast.success("Invite link copied!");
+};
+
+
+const shareWhatsApp = () => {
+  const msg = encodeURIComponent(
+    `Join the property using this invite link:\n${inviteUrl}`
+  );
+  window.open(`https://wa.me/?text=${msg}`, "_blank");
+};
+
+const shareEmail = () => {
+  const subject = encodeURIComponent("PropGrowthX – Tenant Invitation");
+  const body = encodeURIComponent(
+    `Hello,\n\nYou have been invited to join a property on PropGrowthX.\n\nInvite Link (valid for 10 minutes):\n${inviteUrl}\n\nThanks,\nPropGrowthX`
+  );
+
+  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+};
+
+
+  if (!property) {
+    return <DashboardSkeleton/>
+  }
+
+  const fullAddress = `${property.address}, ${property.city}, ${property.state} ${property.zip_code}`;
+
+  const mapUrl = `https://www.google.com/maps?q=${encodeURIComponent(
+    fullAddress
+  )}&output=embed`;
 
   if (!property) {
     return (
@@ -336,7 +421,7 @@ const PropertyDetails = () => {
                         <MessageSquare className="w-5 h-5 text-secondary" />
                         <div>
                           <div className="text-xs text-muted-foreground">Inquiries</div>
-                          <div className="font-medium text-foreground">{property.inquiries}</div>
+                          <div className="font-medium text-foreground">{property?.inquiries ?? 0}</div>
                         </div>
                       </div>
                     </div>
@@ -367,12 +452,32 @@ const PropertyDetails = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="aspect-video bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
-                        <div className="text-center">
-                          <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                          <p>Map integration coming soon</p>
-                        </div>
-                      </div>
+                      <div className="aspect-video rounded-lg overflow-hidden border mb-3">
+                      <iframe
+                        src={mapUrl}
+                        width="100%"
+                        height="100%"
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        className="w-full h-full"
+                        title="Property Location Map"
+                      />
+                    </div>
+                    <Button 
+                      asChild
+                      variant='outline'
+                      className='w-fit'
+                    >
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        fullAddress
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open in Google Maps
+                    </a>
+                    </Button>
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -424,7 +529,6 @@ const PropertyDetails = () => {
                 </Card>
 
                 {isOwner && <div className="space-y-4">
-
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Invite Tenant</CardTitle>
@@ -442,12 +546,43 @@ const PropertyDetails = () => {
                   <QRCodeCanvas value={inviteUrl} size={200} />
 
                   {timeLeft !== null && timeLeft > 0 ? (
-                    <p className="text-sm text-gray-600">
+                    <div className='space-y-2'>
+                    <p className="text-sm text-gray-600 text-center">
                       Expires in{' '}
                       <span className="font-semibold text-black">
                         {formatTime(timeLeft)}
                       </span>
                     </p>
+                    <Button
+                     onClick={handleShare}
+                     variant="outline"
+                     className="w-full bg-gray-200"
+                   >
+                    <Share2 className="w-4 h-4" />
+                     Share QR
+                   </Button>
+                    {showShareOptions && (
+                    <div className="flex gap-3 justify-center">
+                    <Button
+                     onClick={copyInviteLink}
+                     variant="outline"
+                     className="flex-1"
+                   >
+                    <Copy className="w-4 h-4" />
+                     Copy Link
+                   </Button>
+                      <Button onClick={shareWhatsApp} className="bg-green-500 hover:bg-green-600">
+                        <MessageCircle className="w-4 h-4" />
+                        WhatsApp
+                      </Button>
+
+                      <Button onClick={shareEmail} variant="outline">
+                        <Mail className="w-4 h-4" />
+                        Email
+                      </Button>
+                    </div>
+                  )}
+                   </div>
                   ) : (
                     <p className="text-sm text-red-500 font-semibold">
                       QR Expired
@@ -455,7 +590,6 @@ const PropertyDetails = () => {
                   )}
                 </div>
               )}
-
                 </CardContent>
                 </Card>
               </div>}
@@ -512,6 +646,7 @@ const PropertyDetails = () => {
                         <span>{profile.find(p=>p.id === property.buyer_id)?.email}</span>
                       </div>
                     </div>
+
                   </CardContent>
                 </Card>}
 
@@ -525,7 +660,7 @@ const PropertyDetails = () => {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Past Tenants</span>
-                        <span className="font-semibold text-foreground">{property?.past ?? 'NA'}</span>
+                        <span className="font-semibold text-foreground">{pastTenants?.length ?? 'NA'}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Inquiries</span>
@@ -555,6 +690,28 @@ const PropertyDetails = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                {pastTenants?.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Past Tenants</CardTitle>
+                    </CardHeader>
+                                
+                    <CardContent className="space-y-3">
+                      {pastTenants.map((t) => (
+                        <div key={t.id} className="border rounded-md p-3">
+                          <p className="font-semibold">{t.tenant_name}</p>
+                          <p className="text-sm text-muted-foreground">{t.tenant_phone}</p>
+                          <p className="text-sm text-muted-foreground">{t.tenant_email}</p>
+                          <p className="text-sm">
+                            {new Date(t.start_date).toLocaleDateString("en-GB")} → {new Date(t.end_date).toLocaleDateString("en-GB")}
+                          </p>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
               </div>
             </div>
           </div>

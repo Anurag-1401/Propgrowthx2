@@ -19,6 +19,7 @@ import {
 import PayPaymentModal from '@/components/tenant/PayPaymentModal';
 import { Transaction } from '@/pages/dashboard/tenant/TenantTransactions';
 import { useData } from '@/context/dataContext';
+import { PropertyData } from '../dashboard/EditPropertyModal';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -27,7 +28,8 @@ interface TransactionTableProps {
 export const computeTransactionFilters = (
   transactions: Transaction[],
   searchTerm: string,
-  typeFilter: string
+  typeFilter: string,
+  property:PropertyData
 ) => {
   /* ---------------- helpers ---------------- */
   const addMonths = (date: Date, months: number) => {
@@ -49,27 +51,32 @@ export const computeTransactionFilters = (
       return acc;
     }, {});
 
-  const derivedRentTransactions: Transaction[] = [];
+ const derivedRentTransactions: Transaction[] = [];
 
-  Object.entries(completedRentByProperty).forEach(([propertyId, rents]) => {
-    const lastPaid = rents
-      .map(r => new Date(r.date))
-      .sort((a, b) => b.getTime() - a.getTime())[0];
+Object.entries(completedRentByProperty).forEach(([propertyId, rents]) => {
+  const baseDueDate = property.due_date
 
-    for (let i = 1; i <= 3; i++) {
-      const due = addMonths(lastPaid, i);
+  if (!baseDueDate) return;
 
-      derivedRentTransactions.push({
-        id: Number(`999${propertyId.slice(0, 3)}${i}`),
-        property_id: propertyId,
-        type: "rent",
-        amount: rents[0].amount,
-        date: formatDate(due),
-        due_date: formatDate(due),
-        status: due < today ? "overdue" : "upcoming",
-      });
-    }
-  });
+  const base = new Date(baseDueDate);
+
+  for (let i = 1; i <= 3; i++) {
+    const due = addMonths(base, i);
+
+    derivedRentTransactions.push({
+      id: Number(`999${propertyId.slice(0, 3)}${i}`),
+      property_id: propertyId,
+      type: "rent",
+      amount: rents[0].amount,
+
+      date: null,
+      due_date: formatDate(due),
+
+      status: due < today ? "overdue" : "upcoming",
+    });
+  }
+});
+
 
   /* ---------------- merged ---------------- */
   const allTransactions: Transaction[] = [
@@ -108,29 +115,49 @@ export const computeTransactionFilters = (
 
   /* ---------------- tabs ---------------- */
   const pastTabTransactions = allTransactions.filter(tx => {
-    if (tx.status !== "completed") return false;
-    const txDate = new Date(tx.date);
-    return txDate.getMonth() === prevMonth && txDate.getFullYear() === prevYear;
-  });
+  if (tx.status !== "completed") return false;
+
+  const paidDate = new Date(tx.date);
+
+  return (
+    paidDate.getMonth() === prevMonth &&
+    paidDate.getFullYear() === prevYear
+  );
+});
+
 
   const currentTabTransactions = allTransactions.filter(tx => {
-    const baseDate = tx.due_date ? new Date(tx.due_date) : new Date(tx.date);
+  if (tx.status === "completed") {
+    const paidDate = new Date(tx.date);
     return (
-      baseDate.getMonth() === currentMonth &&
-      baseDate.getFullYear() === currentYear &&
-      ["completed", "pending", "overdue"].includes(tx.status)
+      paidDate.getMonth() === currentMonth &&
+      paidDate.getFullYear() === currentYear
     );
-  });
+  }
 
-  const upcomingTabTransactions = allTransactions.filter(tx => {
+  if (["pending", "overdue"].includes(tx.status)) {
     if (!tx.due_date) return false;
     const due = new Date(tx.due_date);
     return (
-      tx.status === "upcoming" &&
-      due.getMonth() === nextMonth.getMonth() &&
-      due.getFullYear() === nextMonth.getFullYear()
+      due.getMonth() === currentMonth &&
+      due.getFullYear() === currentYear
     );
-  });
+  }
+
+  return false;
+});
+
+
+  const upcomingTabTransactions = allTransactions.filter(tx => {
+  if (tx.status !== "upcoming" || !tx.due_date) return false;
+
+  const due = new Date(tx.due_date);
+  return (
+    due.getMonth() === nextMonth.getMonth() &&
+    due.getFullYear() === nextMonth.getFullYear()
+  );
+});
+
 
   const allTabTransactions = [
     ...pastTabTransactions,

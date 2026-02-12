@@ -35,7 +35,6 @@ const TenantDashboard = () => {
     { label: 'Rented', value: '2', icon: CheckCircle2 },
     { label: 'Property Views', value: '6', icon: Search },
   ];
-  console.log(id)
 
   const myProperties = properties.filter((p)=>p.buyer_id === id);
   const myTxs = transactions.filter(t => t.tenant_id === id);
@@ -109,23 +108,6 @@ const TenantDashboard = () => {
              </Link>
            </div>
 
-            {/* Stats Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {stats.map((stat, index) => (
-                <div key={index} className="stat-card">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center">
-                      <stat.icon className="w-6 h-6 text-primary" />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-bold text-foreground mb-1">
-                    {stat.value}
-                  </div>
-                  <div className="text-sm text-muted-foreground">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-
             <div className="grid lg:grid-cols-3 gap-8">
               {/* Main Content */}
               <div className="lg:col-span-2 space-y-8">
@@ -171,11 +153,11 @@ const TenantDashboard = () => {
                               {property?.since || 'N/A'}
                             </div>
                           </div>
-                          {property?.endDate && (
+                          {property?.end_date && (
                             <div className="text-sm">
                               <div className="text-muted-foreground">Until</div>
                               <div className="font-medium text-foreground">
-                                {property.endDate || 'N/A'}
+                                {property.end_date || 'N/A'}
                               </div>
                             </div>
                           )}

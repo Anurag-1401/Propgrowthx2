@@ -21,8 +21,9 @@ import TenantComplaints from "./pages/dashboard/tenant/TenantComplaints";
 import TenantTransactions from "./pages/dashboard/tenant/TenantTransactions";
 import OwnerComplaints from "./pages/dashboard/owner/OwnerComplaints";
 import { DataProvider } from "./context/dataContext";
+import AboutUsPage from "./pages/AboutUsPage";
 
-function App() {
+function App() { 
   return (
     <HelmetProvider>
       <ScrollToTop />
@@ -34,6 +35,7 @@ function App() {
         <Route path="/services" element={<Services />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/about-us" element={<AboutUsPage />} />
 
         <Route element={<PublicRoute />}>
             <Route path="/auth" element={<AuthPage />} />

@@ -1,4 +1,7 @@
+import { useNavigate } from "react-router-dom"
+
 export default function Hero() {
+  const navigate = useNavigate()
   return (
     <section
       style={{
@@ -84,8 +87,8 @@ export default function Hero() {
             automated workflows, zero spreadsheets.
           </p>
 
-          {/* CTA Button */}
-          <button
+          {/* CTA Button */} 
+          <button onClick={()=>navigate('/auth')}
             style={{
               background: '#FFFFFF',
               color: '#EF4444',
@@ -110,7 +113,7 @@ export default function Hero() {
               e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.12)'
             }}
           >
-            JOIN THE WAITING LIST
+            Lets Get Started
           </button>
         </div>
       </div>

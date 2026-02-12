@@ -39,7 +39,11 @@ const SetPassword: React.FC = () => {
       });
   }, [inviteToken]);
 
-
+  const addDays = (dateStr: string, days: number) => {
+    const date = new Date(dateStr);
+    date.setDate(date.getDate() + days);
+    return date.toISOString().split("T")[0];
+  };
 
    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,12 +57,43 @@ const SetPassword: React.FC = () => {
             return;
           }
           const hashedPassword = await bcrypt.hash(password, 10);
+
+          const {data:propData,error:propError} = await supabase
+          .from("properties")
+          .select("*")
+          .eq("id",propId)
+          .single();
+
+          if (propError || !propData) console.log("Property not found");
+
+          if (propData?.buyer_id) {
+            const { data: oldTenant } = await supabase
+              .from("profiles")
+              .select("id, name, email, phone")
+              .eq("id", propData.buyer_id)
+              .single();
+
+            await supabase.from("property_past_tenants").insert({
+              property_id: propId,
+              tenant_id: oldTenant.id,
+              tenant_name: oldTenant.name,
+              tenant_email: oldTenant.email,
+              tenant_phone: oldTenant.phone,
+              start_date: propData.since ?? null,
+              end_date: new Date().toISOString().split("T")[0],
+            });
+          }
+
           const { data, error } = await supabase
             .from("profiles")
             .insert({
               email,
               role:'tenant',
               password:hashedPassword,
+              address:propData.address,
+              city:propData.city,
+              state:propData.state,
+              zip_code:propData.zip_code
             })
             .select()
             .single();
@@ -74,7 +109,9 @@ const SetPassword: React.FC = () => {
               .from("properties")
               .update({
                 buyer_id:data.id,
-                status:'occupied'
+                status:'occupied',
+                since: new Date().toISOString().split("T")[0],
+                due_date:addDays(new Date().toISOString().split("T")[0],4)
               })
               .eq("id",propId)
               .select()
@@ -108,7 +145,7 @@ const SetPassword: React.FC = () => {
           setId(data.id);
           sessionStorage.setItem("id", data.id);
 
-          navigate("/dashboard/tenant");
+          navigate(`/profile/${data.id}`);
 
         } catch (err) {
           console.log("Unexpected error:", err.message);

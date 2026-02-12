@@ -19,7 +19,7 @@ const Index = () => {
           content="Make smarter property decisions with PropGrowthX. ML-powered price predictions, verified properties, and transparent transactions."
         />
       </Helmet>
-
+ 
       <Navbar />
 
       <section id="home">
