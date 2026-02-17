@@ -22,6 +22,10 @@ import TenantTransactions from "./pages/dashboard/tenant/TenantTransactions";
 import OwnerComplaints from "./pages/dashboard/owner/OwnerComplaints";
 import { DataProvider } from "./context/dataContext";
 import AboutUsPage from "./pages/AboutUsPage";
+import PropertySettingsPage from "./pages/PropertySettingPage";
+import BillingPage from "./pages/BillingPage";
+import SecuritySettingsPage from "./pages/SecuritySettingPage";
+import DashboardNav from "./components/Home-2/DashboardNav";
 
 function App() { 
   return (
@@ -36,6 +40,9 @@ function App() {
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/about-us" element={<AboutUsPage />} />
+        <Route path="/security-settings" element={<SecuritySettingsPage />} />
+        <Route path="/billing" element={<BillingPage />} />
+        <Route path="/property-settings" element={<PropertySettingsPage />} />  
 
         <Route element={<PublicRoute />}>
             <Route path="/auth" element={<AuthPage />} />

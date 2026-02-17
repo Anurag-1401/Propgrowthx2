@@ -2,24 +2,17 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Home,
   Download,
   CreditCard,
   ArrowUpRight,
   IndianRupee,
+  Calendar,
+  Wallet,
 } from 'lucide-react';
 import PayPaymentModal from '@/components/tenant/PayPaymentModal';
 import { Transaction } from '@/pages/dashboard/tenant/TenantTransactions';
 import { useData } from '@/context/dataContext';
-import { PropertyData } from '../dashboard/EditPropertyModal';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -28,57 +21,62 @@ interface TransactionTableProps {
 export const computeTransactionFilters = (
   transactions: Transaction[],
   searchTerm: string,
-  typeFilter: string,
-  property:PropertyData
+  typeFilter: string
 ) => {
-  /* ---------------- helpers ---------------- */
+  try {
   const addMonths = (date: Date, months: number) => {
     const d = new Date(date);
     d.setMonth(d.getMonth() + months);
     return d;
   };
 
-  const formatDate = (d: Date) => d.toISOString().split("T")[0];
+  const formatDate = (d: Date) => {
+    if (isNaN(d.getTime())) return new Date().toISOString().split("T")[0];
+    return d.toISOString().split("T")[0];
+  };
 
   const today = new Date();
+  const validTransactions = Array.isArray(transactions) ? transactions : [];
 
-  /* ---------------- completed rent ---------------- */
-  const completedRentByProperty = transactions
-    .filter(tx => tx.type === "rent" && tx.status === "completed")
+  const completedRentByProperty = validTransactions
+    .filter(tx => tx && tx.type === "rent" && tx.status === "completed" && tx.property_id && tx.date)
     .reduce<Record<string, Transaction[]>>((acc, tx) => {
       acc[tx.property_id] ||= [];
       acc[tx.property_id].push(tx);
       return acc;
     }, {});
 
- const derivedRentTransactions: Transaction[] = [];
+  const derivedRentTransactions: Transaction[] = [];
 
-Object.entries(completedRentByProperty).forEach(([propertyId, rents]) => {
-  const baseDueDate = property.due_date
+  Object.entries(completedRentByProperty).forEach(([propertyId, rents]) => {
+    if (!rents.length) return;
+    
+    const validDates = rents
+      .map(r => {
+        const d = new Date(r.date);
+        return isNaN(d.getTime()) ? null : d;
+      })
+      .filter((d): d is Date => d !== null)
+      .sort((a, b) => b.getTime() - a.getTime());
 
-  if (!baseDueDate) return;
+    if (!validDates.length) return;
+    const lastPaid = validDates[0];
 
-  const base = new Date(baseDueDate);
+    for (let i = 1; i <= 3; i++) {
+      const due = addMonths(lastPaid, i);
 
-  for (let i = 1; i <= 3; i++) {
-    const due = addMonths(base, i);
+      derivedRentTransactions.push({
+        id: Number(`999${propertyId.slice(0, 3)}${i}`),
+        property_id: propertyId,
+        type: "rent",
+        amount: rents[0].amount,
+        date: formatDate(due),
+        due_date: formatDate(due),
+        status: due < today ? "overdue" : "upcoming",
+      });
+    }
+  });
 
-    derivedRentTransactions.push({
-      id: Number(`999${propertyId.slice(0, 3)}${i}`),
-      property_id: propertyId,
-      type: "rent",
-      amount: rents[0].amount,
-
-      date: null,
-      due_date: formatDate(due),
-
-      status: due < today ? "overdue" : "upcoming",
-    });
-  }
-});
-
-
-  /* ---------------- merged ---------------- */
   const allTransactions: Transaction[] = [
     ...transactions,
     ...derivedRentTransactions.filter(
@@ -92,17 +90,17 @@ Object.entries(completedRentByProperty).forEach(([propertyId, rents]) => {
     ),
   ];
 
-  /* ---------------- text + type filter ---------------- */
   const filteredTransactions = allTransactions.filter(tx => {
+    if (!tx || !tx.property_id) return false;
+    
     const matchesSearch =
-      tx.property_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tx.reference_no?.toLowerCase().includes(searchTerm.toLowerCase());
+      String(tx.property_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(tx.reference_no || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesType = typeFilter === "all" || tx.type === typeFilter;
     return matchesSearch && matchesType;
   });
 
-  /* ---------------- date helpers ---------------- */
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
@@ -113,51 +111,34 @@ Object.entries(completedRentByProperty).forEach(([propertyId, rents]) => {
 
   const nextMonth = new Date(currentYear, currentMonth + 1, 1);
 
-  /* ---------------- tabs ---------------- */
   const pastTabTransactions = allTransactions.filter(tx => {
-  if (tx.status !== "completed") return false;
-
-  const paidDate = new Date(tx.date);
-
-  return (
-    paidDate.getMonth() === prevMonth &&
-    paidDate.getFullYear() === prevYear
-  );
-});
-
+    if (!tx || tx.status !== "completed" || !tx.date) return false;
+    const txDate = new Date(tx.date);
+    if (isNaN(txDate.getTime())) return false;
+    return txDate.getMonth() === prevMonth && txDate.getFullYear() === prevYear;
+  });
 
   const currentTabTransactions = allTransactions.filter(tx => {
-  if (tx.status === "completed") {
-    const paidDate = new Date(tx.date);
+    if (!tx) return false;
+    const baseDate = tx.due_date ? new Date(tx.due_date) : new Date(tx.date);
+    if (isNaN(baseDate.getTime())) return false;
     return (
-      paidDate.getMonth() === currentMonth &&
-      paidDate.getFullYear() === currentYear
+      baseDate.getMonth() === currentMonth &&
+      baseDate.getFullYear() === currentYear &&
+      ["completed", "pending", "overdue"].includes(tx.status)
     );
-  }
-
-  if (["pending", "overdue"].includes(tx.status)) {
-    if (!tx.due_date) return false;
-    const due = new Date(tx.due_date);
-    return (
-      due.getMonth() === currentMonth &&
-      due.getFullYear() === currentYear
-    );
-  }
-
-  return false;
-});
-
+  });
 
   const upcomingTabTransactions = allTransactions.filter(tx => {
-  if (tx.status !== "upcoming" || !tx.due_date) return false;
-
-  const due = new Date(tx.due_date);
-  return (
-    due.getMonth() === nextMonth.getMonth() &&
-    due.getFullYear() === nextMonth.getFullYear()
-  );
-});
-
+    if (!tx || !tx.due_date) return false;
+    const due = new Date(tx.due_date);
+    if (isNaN(due.getTime())) return false;
+    return (
+      tx.status === "upcoming" &&
+      due.getMonth() === nextMonth.getMonth() &&
+      due.getFullYear() === nextMonth.getFullYear()
+    );
+  });
 
   const allTabTransactions = [
     ...pastTabTransactions,
@@ -165,33 +146,29 @@ Object.entries(completedRentByProperty).forEach(([propertyId, rents]) => {
     ...upcomingTabTransactions,
   ];
 
-  /* ---------------- payments ---------------- */
   const toNumber = (v: string | number | undefined) => Number(v || 0);
 
   const totalPaidThisYear = allTransactions
     .filter(
       tx =>
-        tx.status === "completed" &&
+        tx && tx.status === "completed" && tx.date &&
+        !isNaN(new Date(tx.date).getTime()) &&
         new Date(tx.date).getFullYear() === currentYear
     )
     .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
 
   const pendingPayments = allTransactions
-    .filter(tx => tx.status === "pending")
+    .filter(tx => tx && tx.status === "pending")
     .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
 
   const overduePayments = allTransactions
-    .filter(tx => tx.status === "overdue")
+    .filter(tx => tx && tx.status === "overdue")
     .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
 
   const upcomingPayments = allTransactions
-    .filter(tx => tx.status === "upcoming")
+    .filter(tx => tx && tx.status === "upcoming")
     .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
 
-  const threeMonthsFromNow = new Date();
-  threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
-
-  /* ---------------- RETURN EVERYTHING ---------------- */
   return {
     completedRentByProperty,
     derivedRentTransactions,
@@ -201,142 +178,244 @@ Object.entries(completedRentByProperty).forEach(([propertyId, rents]) => {
     currentTabTransactions,
     upcomingTabTransactions,
     allTabTransactions,
-    overdueTransactions: allTransactions.filter(tx => tx.status === "overdue"),
+    overdueTransactions: allTransactions.filter(tx => tx && tx.status === "overdue"),
     upcomingTransactions: allTransactions
-      .filter(tx => tx.status === "upcoming")
-      .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime())
+      .filter(tx => tx && tx.status === "upcoming" && tx.due_date)
+      .sort((a, b) => {
+        const dateA = new Date(a.due_date!);
+        const dateB = new Date(b.due_date!);
+        if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0;
+        return dateA.getTime() - dateB.getTime();
+      })
       .slice(0, 3),
     totalPaidThisYear,
     pendingPayments,
     overduePayments,
     upcomingPayments,
-    threeMonthsFromNow,
   };
+  } catch (error) {
+    console.error("Error in computeTransactionFilters:", error);
+    return {
+      completedRentByProperty: {},
+      derivedRentTransactions: [],
+      allTransactions: [],
+      filteredTransactions: [],
+      pastTabTransactions: [],
+      currentTabTransactions: [],
+      upcomingTabTransactions: [],
+      allTabTransactions: [],
+      overdueTransactions: [],
+      upcomingTransactions: [],
+      totalPaidThisYear: 0,
+      pendingPayments: 0,
+      overduePayments: 0,
+      upcomingPayments: 0,
+    };
+  }
 };
 
-const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <Badge className="bg-success text-primary-foreground">Completed</Badge>;
-      case 'pending':
-        return <Badge className="bg-warning text-foreground">Pending</Badge>;
-      case 'overdue':
-        return <Badge className="bg-destructive text-destructive-foreground">Overdue</Badge>;
-      case 'upcoming':
-        return <Badge className="bg-secondary text-secondary-foreground">Upcoming</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
+const getStatusConfig = (status: string) => {
+  switch (status) {
+    case 'completed':
+      return {
+        badge: <Badge className="bg-green-100 text-green-800 border border-green-200 text-xs">Completed</Badge>,
+        color: 'text-green-600',
+        bgColor: 'hover:bg-green-50/50'
+      };
+    case 'pending':
+      return {
+        badge: <Badge className="bg-amber-100 text-amber-800 border border-amber-200 text-xs">Pending</Badge>,
+        color: 'text-amber-600',
+        bgColor: 'hover:bg-amber-50/50'
+      };
+    case 'overdue':
+      return {
+        badge: <Badge className="bg-red-100 text-red-800 border border-red-200 text-xs">Overdue</Badge>,
+        color: 'text-red-600',
+        bgColor: 'hover:bg-red-50/50'
+      };
+    case 'upcoming':
+      return {
+        badge: <Badge className="bg-blue-100 text-blue-800 border border-blue-200 text-xs">Upcoming</Badge>,
+        color: 'text-blue-600',
+        bgColor: 'hover:bg-blue-50/50'
+      };
+    default:
+      return {
+        badge: <Badge className="bg-gray-100 text-gray-800 border border-gray-200 text-xs">{status}</Badge>,
+        color: 'text-gray-600',
+        bgColor: 'hover:bg-gray-50/50'
+      };
+  }
+};
 
-  const getTypeBadge = (type: string) => {
-    switch (type) {
-      case 'rent':
-        return <Badge variant="outline" className="border-secondary text-secondary">Rent</Badge>;
-      case 'purchase':
-        return <Badge variant="outline" className="border-success text-success">Purchase</Badge>;
-      case 'deposit':
-        return <Badge variant="outline" className="border-primary text-primary">Deposit</Badge>;
-      case 'maintenance':
-        return <Badge variant="outline">Maintenance</Badge>;
-      case 'utility':
-        return <Badge variant="outline">Utility</Badge>;
-      default:
-        return <Badge variant="outline">{type}</Badge>;
-    }
-  };
+const getTypeConfig = (type: string) => {
+  switch (type) {
+    case 'rent':
+      return { badge: <Badge className="bg-red-100 text-red-800 border border-red-200 text-xs font-medium">Rent</Badge> };
+    case 'deposit':
+      return { badge: <Badge className="bg-blue-100 text-blue-800 border border-blue-200 text-xs font-medium">Deposit</Badge> };
+    case 'maintenance':
+      return { badge: <Badge className="bg-purple-100 text-purple-800 border border-purple-200 text-xs font-medium">Maintenance</Badge> };
+    case 'utility':
+      return { badge: <Badge className="bg-cyan-100 text-cyan-800 border border-cyan-200 text-xs font-medium">Utility</Badge> };
+    default:
+      return { badge: <Badge className="bg-gray-100 text-gray-800 border border-gray-200 text-xs font-medium">{type}</Badge> };
+  }
+};
 
-export const TransactionTable = ({ transactions}: TransactionTableProps) => {
-  const {properties} = useData();
+export const TransactionTable = ({ transactions }: TransactionTableProps) => {
+  const { properties } = useData();
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
-  return(
+  const validTransactions = Array.isArray(transactions) ? transactions : [];
+  const validProperties = Array.isArray(properties) ? properties : [];
+
+  if (validTransactions.length === 0) {
+    return (
+      <>
+        <PayPaymentModal open={payModalOpen} onOpenChange={setPayModalOpen} />
+        
+        <div className="py-12 px-6 text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-100 rounded-2xl mb-4">
+            <Wallet className="w-7 h-7 text-blue-600" strokeWidth={1.5} />
+          </div>
+          
+          <h3 className="text-lg font-bold text-gray-900 mb-2">No transactions yet</h3>
+          <p className="text-gray-600 text-sm max-w-xs mx-auto mb-6">
+            Once you start paying rent or making other payments, your transaction history will appear here.
+          </p>
+
+          <Button
+            className="bg-red-600 hover:bg-red-700 text-white font-semibold px-8 py-2 rounded-lg shadow-md hover:shadow-lg transition-all inline-flex items-center gap-2"
+            onClick={() => setPayModalOpen(true)}
+          >
+            <CreditCard className="w-4 h-4" />
+            Make Your First Payment
+          </Button>
+        </div>
+      </>
+    );
+  }
+
+  return (
     <>
-     <PayPaymentModal
-        open={payModalOpen}
-        onOpenChange={setPayModalOpen}
-      />
+      <PayPaymentModal open={payModalOpen} onOpenChange={setPayModalOpen} />
 
-  {transactions.length === 0 ? (
-      <div>
-      <div className="p-12 text-center">
-        <IndianRupee className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-foreground mb-2">No transactions found</h3>
-        <p className="text-muted-foreground">Try adjusting your filters or search term</p>
-      </div>
-      <div className='text-center p-12'>
-      <h4 className="text-md font-semibold text-foreground mb-2">Make your 1st Payment</h4>
-      <Button
-        className="bg-secondary hover:bg-secondary/90"
-        onClick={() => setPayModalOpen(true)}
-      >
-        <CreditCard className="w-4 h-4 mr-2" />
-        Pay Rent
-      </Button>
+      <div className="divide-y divide-gray-100">
+        {validTransactions.map((tx, idx) => {
+          if (!tx) return null;
+          
+          const property = validProperties.find(p => p?.id === tx.property_id);
+          const propertyName = property?.property_name || 'Unknown Property';
+          const statusConfig = getStatusConfig(tx.status);
+          const typeConfig = getTypeConfig(tx.type);
+          const amount = Number(tx.amount || 0);
 
-      </div>
-      </div>) : (
-        <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Property</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Due Date</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Reference</TableHead>
-            <TableHead className="text-right">Action</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transactions.map((tx) => (
-            <TableRow key={tx.id}>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Home className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium text-foreground">{properties.find(p => p.id === tx.property_id)?.property_name}</span>
+          return (
+            <div
+              key={`${tx.id}-${idx}`}
+              className={`p-4 transition-colors duration-200 group cursor-default ${statusConfig.bgColor}`}
+            >
+              {/* Mobile Layout */}
+              <div className="lg:hidden">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center flex-shrink-0 border border-gray-200">
+                      <Home className="w-4 h-4 text-red-600" strokeWidth={1.5} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-gray-900 text-sm truncate">{propertyName}</p>
+                      <p className="text-xs text-gray-600 mt-0.5">{typeConfig.badge}</p>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xl font-bold text-gray-900">₹{amount.toLocaleString()}</p>
+                  </div>
                 </div>
-              </TableCell>
-              <TableCell>{getTypeBadge(tx.type)}</TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1">
-                  {tx.status === 'completed' ? (
-                    <ArrowUpRight className="w-4 h-4 text-success" />
-                  ) : (
-                    <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
-                  )}
-                  <span className="font-semibold text-foreground">₹{tx.amount.toLocaleString()}</span>
+
+                <div className="flex items-center justify-between text-xs text-gray-600 mb-2 pt-2 border-t border-gray-100">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {tx.date}
+                  </span>
+                  {statusConfig.badge}
                 </div>
-              </TableCell>
-              <TableCell className="text-muted-foreground">{tx.date}</TableCell>
-              <TableCell className="text-muted-foreground">{tx.due_date?.split("T")[0] || '-'}</TableCell>
-              <TableCell>{getStatusBadge(tx.status)}</TableCell>
-              <TableCell className="text-muted-foreground text-sm">{tx.reference_no || '-'}</TableCell>
-              <TableCell className="text-right">
+
                 {(tx.status === 'pending' || tx.status === 'overdue' || tx.status === 'upcoming') && (
-                  <Button size="sm" className="bg-secondary hover:bg-secondary/90" 
-                  onClick={() => {
+                  <Button
+                    size="sm"
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold text-xs h-8 rounded-lg mt-2"
+                    onClick={() => {
                       setSelectedTx(tx);
                       setPayModalOpen(true);
-                    }}>
+                    }}
+                  >
                     Pay Now
                   </Button>
                 )}
                 {tx.status === 'completed' && (
-                  <Button size="sm" variant="ghost">
-                    <Download className="w-4 h-4" />
+                  <Button
+                    size="sm"
+                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold text-xs h-8 rounded-lg mt-2"
+                    variant="ghost"
+                  >
+                    <Download className="w-3 h-3" />
                   </Button>
                 )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  )}
-  </>
-  )
+              </div>
+
+              {/* Desktop Layout */}
+              <div className="hidden lg:grid grid-cols-8 gap-4 items-center text-sm">
+                <div className="col-span-2 flex items-center gap-2 min-w-0">
+                  <Home className="w-4 h-4 text-red-600 flex-shrink-0" strokeWidth={1.5} />
+                  <span className="font-semibold text-gray-900 truncate">{propertyName}</span>
+                </div>
+
+                <div className="col-span-1">{typeConfig.badge}</div>
+
+                <div className="col-span-1">
+                  <div className="flex items-center gap-1">
+                    <ArrowUpRight className={`w-3.5 h-3.5 ${tx.status === 'completed' ? 'text-green-600' : 'text-gray-400'}`} strokeWidth={2.5} />
+                    <span className="font-bold text-gray-900">₹{amount.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className="col-span-1 text-gray-600">{tx.date || '-'}</div>
+
+                <div className="col-span-1 text-gray-600">{tx.due_date?.split("T")[0] || '-'}</div>
+
+                <div className="col-span-1">{statusConfig.badge}</div>
+
+                <div className="col-span-1 text-right">
+                  {(tx.status === 'pending' || tx.status === 'overdue' || tx.status === 'upcoming') && (
+                    <Button
+                      size="sm"
+                      className="bg-red-600 hover:bg-red-700 text-white font-semibold text-xs h-8 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => {
+                        setSelectedTx(tx);
+                        setPayModalOpen(true);
+                      }}
+                    >
+                      Pay
+                    </Button>
+                  )}
+                  {tx.status === 'completed' && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-gray-600 hover:text-red-600 h-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
 };

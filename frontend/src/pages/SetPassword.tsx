@@ -5,7 +5,7 @@ import "../styles/authPage.css";
 import { supabase } from "@/lib/supabase";
 import bcrypt from "bcryptjs";
 import { useSearchParams } from 'react-router-dom';
-import { validateInvite } from "@/hooks/GenerateInvite";
+import { validateInvite } from "@/hooks/GenerateQrInvite";
 import emailjs from "emailjs-com";
 import { useData } from "@/context/dataContext";
 

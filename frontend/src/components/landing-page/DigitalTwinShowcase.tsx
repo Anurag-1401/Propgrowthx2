@@ -47,16 +47,63 @@ export default function DigitalTwinShowcase(props: DigitalTwinShowcaseProps) {
 
     return (
         <div
+            id="features"
             style={{
                 width: "100%",
-                padding: "100px 40px",
+                padding: "40px 16px",
                 background: backgroundColor,
                 fontFamily: "DM Sans, sans-serif",
                 display: "flex",
                 justifyContent: "center",
             }}
         >
+            <style>
+                {`
+                    @media (max-width: 768px) {
+                        .digital-twin-container {
+                            padding: 32px 16px !important;
+                        }
+                        .section-header {
+                            margin-bottom: 32px !important;
+                        }
+                        .comparison-grid {
+                            grid-template-columns: 1fr !important;
+                            gap: 16px !important;
+                        }
+                        .dashboard-container {
+                            padding: 3px !important;
+                        }
+                        .dashboard-image {
+                            height: 240px !important;
+                        }
+                        .feature-grid {
+                            grid-template-columns: 1fr !important;
+                            gap: 12px !important;
+                        }
+                    }
+                    @media (max-width: 480px) {
+                        .digital-twin-container {
+                            padding: 28px 12px !important;
+                        }
+                        .section-header {
+                            margin-bottom: 24px !important;
+                        }
+                        .dashboard-image {
+                            height: 200px !important;
+                        }
+                    }
+                    @media (min-width: 769px) and (max-width: 1024px) {
+                        .digital-twin-container {
+                            padding: 90px 32px !important;
+                        }
+                        .comparison-grid {
+                            gap: 24px !important;
+                        }
+                    }
+                `}
+            </style>
             <div
+                className="digital-twin-container"
                 style={{
                     maxWidth: "1200px",
                     width: "100%",
@@ -167,6 +214,7 @@ function BeforeAfterComparison({ textColor, accentColor, cardBg, hexToRgba }: {
             }}
         >
             <div
+                className="comparison-grid"
                 style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
@@ -497,6 +545,7 @@ function DashboardShowcase({ accentColor, textColor, cardBg, hexToRgba }: {
 
                     {/* Dashboard Screenshot */}
                     <div
+                        className="dashboard-image"
                         style={{
                             width: "100%",
                             height: "500px",

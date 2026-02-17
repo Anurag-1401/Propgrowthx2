@@ -1,14 +1,14 @@
 /* =========================================================
-   TAILWIND (MUST BE FIRST — DO NOT MOVE)
+   GOOGLE FONT (MUST BE FIRST)
+   ========================================================= */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+/* =========================================================
+   TAILWIND (MUST COME AFTER @IMPORT)
    ========================================================= */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* =========================================================
-   GOOGLE FONT
-   ========================================================= */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
 
 /* =========================================================
    GLOBAL RESET (SAFE WITH TAILWIND)
