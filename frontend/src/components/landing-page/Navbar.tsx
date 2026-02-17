@@ -222,8 +222,32 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-6 left-1/2 z-50 w-[calc(100%-32px)] max-w-6xl -translate-x-1/2 rounded-full border border-white/20 bg-white/60 backdrop-blur-xl shadow-lg">
-      <div className="flex items-center justify-between px-6 py-3">
-
+ <style>
+        {`
+          @media (max-width: 768px) {
+            .navbar-container {
+              top: 16px !important;
+              width: calc(100% - 24px) !important;
+              padding: 12px 20px !important;
+            }
+            .navbar-logo {
+              font-size: 16px !important;
+            }
+            .navbar-logo img {
+              width: 32px !important;
+              height: 32px !important;
+            }
+          }
+          @media (max-width: 480px) {
+            .navbar-container {
+              top: 12px !important;
+              width: calc(100% - 16px) !important;
+              padding: 10px 16px !important;
+            }
+          }
+        `}
+      </style>
+      <div className="navbar-container flex items-center justify-between px-6 py-3">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => scrollToSection("home")}>
             <img src="/logo.png" className="h-9 w-9" />
           <span className="text-lg font-semibold text-gray-800">

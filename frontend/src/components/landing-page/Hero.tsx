@@ -1,18 +1,68 @@
-import { useNavigate } from "react-router-dom"
-
 export default function Hero() {
-  const navigate = useNavigate()
   return (
     <section
       style={{
         width: '100%',
         height: '100vh',
+        minHeight: '600px',
         position: 'relative',
         display: 'flex',
         alignItems: 'center',
         overflow: 'hidden',
       }}
     >
+      <style>
+        {`
+          @media (max-width: 768px) {
+            .hero-section {
+              height: 100vh !important;
+              min-height: 500px !important;
+              padding-top: 60px !important;
+            }
+            .hero-content {
+              padding: 0 16px !important;
+            }
+            .hero-heading {
+              font-size: 32px !important;
+              line-height: 1.1 !important;
+              margin-bottom: 16px !important;
+            }
+            .hero-subheading {
+              font-size: 14px !important;
+              margin-bottom: 24px !important;
+            }
+            .hero-button {
+              font-size: 12px !important;
+              padding: 12px 24px !important;
+              width: 100% !important;
+              max-width: 260px !important;
+            }
+          }
+          @media (max-width: 480px) {
+            .hero-section {
+              min-height: 450px !important;
+            }
+            .hero-content {
+              padding: 0 12px !important;
+            }
+            .hero-heading {
+              font-size: 28px !important;
+            }
+            .hero-subheading {
+              font-size: 13px !important;
+            }
+          }
+          @media (min-width: 769px) and (max-width: 1024px) {
+            .hero-content {
+              padding: 0 32px !important;
+            }
+            .hero-heading {
+              font-size: 56px !important;
+            }
+          }
+        `}
+      </style>
+      
       {/* Background Image */}
       <div
         style={{
@@ -43,6 +93,7 @@ export default function Hero() {
 
       {/* Content */}
       <div
+        className="hero-content"
         style={{
           maxWidth: '1400px',
           margin: '0 auto',
@@ -54,6 +105,7 @@ export default function Hero() {
         <div style={{ maxWidth: '850px' }}>
           {/* Main Heading - EXACT match to Framer */}
           <h1
+            className="hero-heading"
             style={{
               fontSize: '72px',
               fontWeight: '700',
@@ -72,6 +124,7 @@ export default function Hero() {
 
           {/* Subheading */}
           <p
+            className="hero-subheading"
             style={{
               fontSize: '17px',
               color: '#FFFFFF',
@@ -87,8 +140,9 @@ export default function Hero() {
             automated workflows, zero spreadsheets.
           </p>
 
-          {/* CTA Button */} 
-          <button onClick={()=>navigate('/auth')}
+          {/* CTA Button */}
+          <button
+            className="hero-button"
             style={{
               background: '#FFFFFF',
               color: '#EF4444',
@@ -113,7 +167,7 @@ export default function Hero() {
               e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.12)'
             }}
           >
-            Lets Get Started
+            REGISTER YOUR PROPERTY
           </button>
         </div>
       </div>

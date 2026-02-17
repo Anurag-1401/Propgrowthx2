@@ -96,6 +96,13 @@ export interface PropertyData {
 
   since?: string;
   end_date?: string;
+
+
+
+  title?:string;
+  location?:string;
+  type?:'rent' | 'lease' | 'buy';
+  area?:number;
 }
 
 

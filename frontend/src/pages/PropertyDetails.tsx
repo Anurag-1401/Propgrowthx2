@@ -41,7 +41,8 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { useData } from '@/context/dataContext';
 import EditPropertyModal, { PropertyData } from '@/components/dashboard/EditPropertyModal';
 import DeletePropertyDialog from '@/components/dashboard/DeletePropertyDialog';
-import { generateInvite } from '@/hooks/GenerateInvite';
+import { generateInvite } from '@/hooks/GenerateQrInvite';
+import { requestForInvitation } from '@/hooks/GenerateEmailInvite';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import DashboardSkeleton from './SkeletonLoading';
@@ -56,6 +57,7 @@ const PropertyDetails = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [showShareOptions, setShowShareOptions] = useState(false);
@@ -114,6 +116,15 @@ const PropertyDetails = () => {
       alert('Failed to generate invite');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEmailInvite = async (property_Id:string,owner_id:string) => {
+    try {
+      await requestForInvitation(property_Id,inviteEmail,owner_id);
+      setInviteEmail(null)
+    } catch (err) {
+      toast.error("Failed to send email invitation");
     }
   };
 
@@ -590,6 +601,55 @@ const shareEmail = () => {
                   )}
                 </div>
               )}
+              <Button onClick={()=>setInviteEmail("true")} disabled={loading}
+              className="w-full bg-secondary hover:bg-secondary/90">
+                <Mail className="w-4 h-4 mr-2" />
+                {loading ? 'Inviting...' : 'Invite via Mail'}
+              </Button>
+
+                {inviteEmail && 
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <input
+                    type="email"
+                    placeholder="Enter tenant email"
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    required
+                    className="
+                      flex-1
+                      px-4 py-2.5
+                      rounded-xl
+                      border border-gray-200
+                      bg-white
+                      text-sm
+                      outline-none
+                      transition-all duration-200
+                      focus:border-red-300
+                      focus:ring-4 focus:ring-red-50
+                      placeholder:text-gray-400
+                    "
+                  />
+
+                  <button
+                    onClick={() => handleEmailInvite(id, property.owner_id)}
+                    className="
+                      px-4 py-2.5
+                      rounded-xl
+                      text-white
+                      text-sm font-semibold
+                      shadow-sm hover:shadow-md
+                      transition-all duration-200
+                      hover:-translate-y-0.5
+                      active:translate-y-0
+                      whitespace-nowrap
+                    "
+                    style={{ background: "linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)" }}
+                  >
+                    Invite
+                  </button>
+                </div>
+
+                }
+
                 </CardContent>
                 </Card>
               </div>}

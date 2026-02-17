@@ -1,6 +1,6 @@
 import { useLocation, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { validateInvite } from "@/hooks/GenerateInvite";
+import { validateInvite } from "@/hooks/GenerateQrInvite";
 import SetPassword from "./SetPassword";
 
 const NotFound = () => {
