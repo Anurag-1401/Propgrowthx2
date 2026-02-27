@@ -54,6 +54,7 @@ const propertySchema = z.object({
 type PropertyFormValues = z.infer<typeof propertySchema>;
 
 export interface PropertyData {
+  isPinned?: boolean;
   past: string;
   id: string;
 

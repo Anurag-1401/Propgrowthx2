@@ -33,6 +33,8 @@ export interface Transaction {
   amount: string | number;
   date: string;
   due_date?: string;
+  tenant_name?: string;
+  property_name?: string;
   images?: string[];
   status: 'completed' | 'pending' | 'overdue' | 'upcoming';
   paymentMethod?: string;
