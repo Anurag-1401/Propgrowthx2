@@ -43,6 +43,9 @@ export interface Complaint {
   description: string;
   status: 'open' | 'in-progress' | 'resolved' | 'closed';
   images:string[];
+  tenant_name?:string;
+  owner_name?:string;
+  property_name?:string;
   created_at: string;
   updated_at: string;
   responses: { date: string; message: string; from: string }[];
@@ -79,13 +82,16 @@ const AddComplaintModal = ({
   open,
   onOpenChange,
 }: AddComplaintModalProps) => {
-  const {properties,id} = useData();
+  const {properties,id,profile} = useData();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const tenantId = sessionStorage.getItem("id");
   const [images, setImages] = useState<(string)[]>([]);
   const [myProperties,setMyProperties] = useState<PropertyData[]>([]);
-  
+
+  const tenant = profile?.find((p) => p.id === tenantId);
+  const owner = profile?.find((p) => p.id === myProperties.find((p) => p.owner_id === myProperties.find((p) => p.buyer_id === tenantId)?.owner_id)?.owner_id);
+
     const form = useForm<ComplaintFormValues>({
     resolver: zodResolver(complaintSchema),
     defaultValues: {
@@ -148,6 +154,9 @@ const AddComplaintModal = ({
         description: data.description,
         status: "open",
         images: images,
+        tenant_name:tenant?.name || "Tenant",
+        owner_name:owner?.name || "Owner",
+        property_name:myProperties.find((p) => p.id === data.property_id)?.property_name || "Property"
       },
     ]);
 

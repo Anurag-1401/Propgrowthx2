@@ -14,6 +14,7 @@ import { Input } from "../ui/input";
 import { useData } from "@/context/dataContext";
 import { PropertyData } from "../dashboard/EditPropertyModal";
 import { Home, CreditCard, Banknote, Smartphone, Building2, CheckCircle2, AlertCircle, X } from "lucide-react";
+import { ProfileData } from "@/pages/Profile";
 
 interface PayPaymentModalProps {
   open: boolean;
@@ -24,7 +25,7 @@ const PayPaymentModal = ({
   open,
   onOpenChange,
 }: PayPaymentModalProps) => {
-  const { properties, id } = useData();
+  const { properties, id ,profile} = useData();
   const [loading, setLoading] = useState(false);
   const userId = sessionStorage.getItem("id");
 
@@ -33,10 +34,12 @@ const PayPaymentModal = ({
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("UPI");
   const [myProperties, setMyProperties] = useState<PropertyData[]>([]);
+  const [myProfile, setMyProfile] = useState<ProfileData[]>([]);
 
   useEffect(() => {
     setMyProperties(properties.filter((p) => p.buyer_id === id));
-  }, [id, properties]);
+    setMyProfile(profile.filter((p) => p.id === id));
+  }, [id, properties,profile]);
 
   useEffect(() => {
     const selected = myProperties.find(p => p.id === propertyId);
@@ -68,6 +71,8 @@ const PayPaymentModal = ({
         date: new Date().toISOString(),
         payment_method: paymentMethod,
         due_date: myProperties.find(p => p.id === propertyId)?.due_date || null,
+        tenant_name:myProfile.find(p => p.id === id)?.name || null,
+        property_name: myProperties.find(p => p.id === propertyId)?.property_name || null,
         reference_no: `TXN-${Date.now()}`,
       },
     ]);

@@ -13,6 +13,7 @@ import {
 import PayPaymentModal from '@/components/tenant/PayPaymentModal';
 import { Transaction } from '@/pages/dashboard/tenant/TenantTransactions';
 import { useData } from '@/context/dataContext';
+import { PropertyData } from '../dashboard/EditPropertyModal';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -21,7 +22,8 @@ interface TransactionTableProps {
 export const computeTransactionFilters = (
   transactions: Transaction[],
   searchTerm: string,
-  typeFilter: string
+  typeFilter: string,
+  myProp:PropertyData
 ) => {
   try {
   const addMonths = (date: Date, months: number) => {
