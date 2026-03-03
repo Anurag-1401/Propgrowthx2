@@ -20,6 +20,16 @@ import {
   CheckCircle2,
   Calendar,
   Building2,
+  Menu,
+  BarChart3,
+  Home,
+  IndianRupee,
+  FileText,
+  User,
+  HelpCircle,
+  Settings,
+  LogOut,
+  X,
 } from 'lucide-react';
 import { useData } from '@/context/dataContext';
 import { computeTransactionFilters, TransactionTable } from '@/components/tenant/TenantTransactionsAndFilter';
@@ -47,6 +57,7 @@ const TenantTransactions = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('all');
+  const [sidebarOpen, setSidebarOpen] = useState(false); // start closed on mobile
 
   const myTxs = transactions.filter(t=>t.tenant_id === id)
   const myProp = properties.find(p => p.buyer_id === id)
@@ -114,6 +125,11 @@ const TenantTransactions = () => {
     },
   ];
 
+  const mobileGoTo = (path: string) => {
+    setSidebarOpen(false);
+    navigate(path);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -132,7 +148,6 @@ const TenantTransactions = () => {
         <meta name="description" content="View and manage your property transactions, rent payments, and payment history." />
       </Helmet>
 
-      <div className="min-h-screen bg-white">
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap');
 
@@ -301,7 +316,130 @@ const TenantTransactions = () => {
           
           .tx-export-btn svg { width: 16px; height: 16px; }
         `}</style>
+        
+<div className="min-h-screen bg-white md:flex">
+        <button
+                  className="md:hidden fixed top-3 left-3 z-50 w-10 h-10 flex items-center justify-center
+                    bg-white border border-gray-200 rounded-xl shadow-md
+                    transition-all duration-200 hover:bg-gray-50"
+                  style={{ display: sidebarOpen ? 'none' : undefined }}
+                  onClick={() => setSidebarOpen(true)}
+                  aria-label="Open menu"
+                >
+                  <Menu className="w-5 h-5 text-gray-700" />
+                </button>
+        
+                {/* ═══════════════════════════════════════
+                    MOBILE ONLY — dark backdrop (covers content).
+                    Tap to close drawer instantly.
+                ═══════════════════════════════════════ */}
+                {sidebarOpen && (
+                  <div
+                    className="fixed inset-0 bg-black/40 z-30 md:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                  />
+                )}
+        
+                {/* ═══════════════════════════════════════
+                    MOBILE ONLY — full drawer, slides in from left.
+                    Auto-closes on every nav link click.
+                    Hidden on md+.
+                ═══════════════════════════════════════ */}
+                <aside
+                  className={`md:hidden fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 z-40
+                    flex flex-col transform transition-transform duration-300 ease-in-out
+                    ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                >
+                  <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <img src="/logo.png" alt="Logo" className="w-8 h-8 flex-shrink-0" />
+                      <span className="text-base font-bold text-gray-900 whitespace-nowrap">PropGrowthX</span>
+                    </div>
+                    <button
+                      onClick={() => setSidebarOpen(false)}
+                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                      aria-label="Close menu"
+                    >
+                      <X className="w-4 h-4 text-gray-500" />
+                    </button>
+                  </div>
+                  <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+                    <SidebarItem icon={BarChart3}  label="Dashboard"    sidebarOpen onClick={() => mobileGoTo('/dashboard/tenant')} />
+                    <SidebarItem icon={Home}       label="My Properties" sidebarOpen onClick={() => mobileGoTo('/properties')} />
+                    <SidebarItem icon={IndianRupee} label="Transactions"  sidebarOpen onClick={() => mobileGoTo('/dashboard/tenant/transactions')} />
+                    <SidebarItem icon={FileText}   label="Complaints"    sidebarOpen active onClick={() => setSidebarOpen(false)} />
+                  </nav>
+                  <div className="px-2 py-4 border-t border-gray-200 space-y-1">
+                    <SidebarItem icon={User}       label="Profile"  sidebarOpen onClick={() => mobileGoTo(`/profile/${id}`)} />
+                    <SidebarItem icon={HelpCircle} label="Support"  sidebarOpen onClick={() => mobileGoTo('/dashboard/tenant/support')} />
+                    <SidebarItem icon={Settings}   label="Settings" sidebarOpen  onClick={()=>navigate('/property-settings')} />
+                    <SidebarItem icon={LogOut}     label="Logout"   sidebarOpen onClick={() => { sessionStorage.clear(); window.location.href = '/'; }} />
+                  </div>
+                </aside>
+        
+                {/* ═══════════════════════════════════════
+                    DESKTOP / TABLET SIDEBAR — completely unchanged.
+                    Inline in flex row, hidden on mobile.
+                ═══════════════════════════════════════ */}
+                <aside
+  className={`hidden md:flex ${
+    sidebarOpen ? 'w-64' : 'w-20'
+  } 
+  h-screen sticky top-0
+  bg-white border-r border-gray-200 
+  transition-all duration-300 
+  flex-col flex-shrink-0`}
+> 
+        <div className="flex flex-col h-full">
+                  {/* Logo Section */}
+                  <div className="flex items-center justify-between h-20 px-4 border-b border-gray-200">
+                    {sidebarOpen ? (
+                      <div className="flex items-center gap-3 flex-1">
+                        <img src="/logo.png" alt="Logo" className="w-10 h-10 flex-shrink-0" />
+                        <span className="text-lg font-bold text-gray-900 whitespace-nowrap">PropGrowthX</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center w-full">
+                        <button
+                          onClick={() => setSidebarOpen(!sidebarOpen)}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          aria-label="Expand sidebar"
+                        >
+                          <Menu className="w-5 h-5 text-gray-600" />
+                        </button>
+                      </div>
+                    )}
+                    {sidebarOpen && (
+                      <button
+                        onClick={() => setSidebarOpen(!sidebarOpen)}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors ml-2"
+                        aria-label="Toggle sidebar"
+                      >
+                        <Menu className="w-5 h-5 text-gray-600" />
+                      </button>
+                    )}
+                  </div>
+        
+                  {/* Navigation Items */}
+                  <nav className="flex-1 px-2 py-6 space-y-2 overflow-y-auto">
+                    <SidebarItem icon={BarChart3}  label="Dashboard"    sidebarOpen={sidebarOpen} onClick={() => navigate('/dashboard/tenant')} />
+                    <SidebarItem icon={Home}       label="My Properties" sidebarOpen={sidebarOpen} onClick={() => navigate('/properties')} />
+                    <SidebarItem icon={IndianRupee} label="Transactions"  sidebarOpen={sidebarOpen} onClick={() => navigate('/dashboard/tenant/transactions')} />
+                    <SidebarItem icon={FileText}   label="Complaints"    sidebarOpen={sidebarOpen} active />
+                  </nav>
+        
+                  {/* Bottom Menu */}
+                  <div className="px-2 py-4 border-t border-gray-200 space-y-2">
+                    <SidebarItem icon={User}       label="Profile"  sidebarOpen={sidebarOpen} onClick={() => navigate(`/profile/${id}`)} />
+                    <SidebarItem icon={HelpCircle} label="Support"  sidebarOpen={sidebarOpen} onClick={() => navigate('/dashboard/tenant/support')} />
+                    <SidebarItem icon={Settings}   label="Settings" sidebarOpen={sidebarOpen}  onClick={()=>navigate('/property-settings')}/>
+                    <SidebarItem icon={LogOut}     label="Logout"   sidebarOpen={sidebarOpen} onClick={() => { sessionStorage.clear(); window.location.href = '/'; }} />
+                  </div>
 
+                  </div>
+                </aside>
+
+        <main className="flex-1 min-w-0">
         {/* Hero Header - Matching Complaints Page Style */}
         <section className="relative bg-white pt-8 pb-0 overflow-hidden">
           <div className="tx-container-custom relative z-10">
@@ -485,9 +623,36 @@ const TenantTransactions = () => {
             </div>
           </section>
         )}
+        </main>
       </div>
     </>
   );
 };
+
+
+const SidebarItem = ({
+  icon: Icon,
+  label,
+  active = false,
+  onClick,
+  sidebarOpen = true,
+}: {
+  icon: React.ElementType;
+  label: string;
+  active?: boolean;
+  onClick?: () => void;
+  sidebarOpen?: boolean;
+}) => (
+  <button
+    onClick={onClick}
+    className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 text-base ${
+      active ? 'bg-red-50 text-red-600 font-semibold' : 'text-gray-700 hover:bg-gray-50 font-medium'
+    }`}
+    title={!sidebarOpen ? label : ''}
+  >
+    <Icon className="w-6 h-6 flex-shrink-0" />
+    {sidebarOpen && <span>{label}</span>}
+  </button>
+);
 
 export default TenantTransactions;

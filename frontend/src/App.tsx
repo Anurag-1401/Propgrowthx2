@@ -25,7 +25,7 @@ import AboutUsPage from "./pages/AboutUsPage";
 import PropertySettingsPage from "./pages/PropertySettingPage";
 import BillingPage from "./pages/BillingPage";
 import SecuritySettingsPage from "./pages/SecuritySettingPage";
-import DashboardNav from "./components/Home-2/DashboardNav";
+import ContactTenant from "./pages/dashboard/tenant/TenantSupport";
 
 function App() { 
   return (
@@ -60,6 +60,7 @@ function App() {
           <Route path="/dashboard/tenant" element={<TenantDashboard />} /> 
           <Route path="/dashboard/tenant/complaints" element={<TenantComplaints />} />
           <Route path="/dashboard/tenant/transactions" element={<TenantTransactions />} />
+          <Route path="/dashboard/tenant/support" element={<ContactTenant />} />
         </Route>
 
 

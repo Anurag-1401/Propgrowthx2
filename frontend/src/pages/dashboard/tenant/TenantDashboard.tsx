@@ -148,9 +148,9 @@ const TenantDashboard = () => {
             <SidebarItem icon={FileText}   label="Complaints"   sidebarOpen onClick={() => { navigate('/dashboard/tenant/complaints'); setSidebarOpen(false); }} />
           </nav>
           <div className="px-2 py-4 border-t border-gray-200 space-y-1">
-            <SidebarItem icon={User}       label="Profile"  sidebarOpen onClick={() => { navigate('/profile'); setSidebarOpen(false); }} />
+            <SidebarItem icon={User}       label="Profile"  sidebarOpen onClick={() => { navigate(`/profile/${id}`); setSidebarOpen(false); }} />
             <SidebarItem icon={HelpCircle} label="Support"  sidebarOpen onClick={() => { navigate('/dashboard/tenant/support'); setSidebarOpen(false); }} />
-            <SidebarItem icon={Settings}   label="Settings" sidebarOpen onClick={() => setSidebarOpen(false)} />
+            <SidebarItem icon={Settings}   label="Settings" sidebarOpen  onClick={()=>navigate('/property-settings')} />
             <SidebarItem icon={LogOut}     label="Logout"   sidebarOpen onClick={() => { sessionStorage.clear(); window.location.href = '/'; }} />
           </div>
         </aside>
@@ -189,9 +189,9 @@ const TenantDashboard = () => {
           </nav>
 
           <div className="px-2 py-4 border-t border-gray-200 space-y-2">
-            <SidebarItem icon={User}       label="Profile"  sidebarOpen={sidebarOpen} onClick={() => navigate('/profile')} />
+            <SidebarItem icon={User}       label="Profile"  sidebarOpen={sidebarOpen} onClick={() => navigate(`/profile/${id}`)} />
             <SidebarItem icon={HelpCircle} label="Support"  sidebarOpen={sidebarOpen} onClick={() => navigate('/dashboard/tenant/support')} />
-            <SidebarItem icon={Settings}   label="Settings" sidebarOpen={sidebarOpen} />
+            <SidebarItem icon={Settings}   label="Settings" sidebarOpen={sidebarOpen} onClick={()=>navigate('/property-settings')}/>
             <SidebarItem icon={LogOut}     label="Logout"   sidebarOpen={sidebarOpen} onClick={() => { sessionStorage.clear(); window.location.href = '/'; }} />
           </div>
         </aside>
@@ -256,7 +256,7 @@ const TenantDashboard = () => {
                         <div className="text-sm font-semibold text-gray-900">Tenant User</div>
                         <div className="text-xs text-gray-500">tenant@propgrowthx.com</div>
                       </div>
-                      <button onClick={() => { setUserOpen(false); navigate('/profile'); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"><FileText className="w-4 h-4 text-gray-400" />My Profile</button>
+                      <button onClick={() => { setUserOpen(false); navigate(`/profile/${id}`); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"><FileText className="w-4 h-4 text-gray-400" />My Profile</button>
                       <div className="border-t border-gray-100 mt-2 pt-2" />
                       <button onClick={() => { sessionStorage.clear(); window.location.href = '/'; }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"><LogOut className="w-4 h-4 text-red-500" />Sign Out</button>
                     </div>

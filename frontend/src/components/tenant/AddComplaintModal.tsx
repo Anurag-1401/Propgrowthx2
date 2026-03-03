@@ -85,12 +85,11 @@ const AddComplaintModal = ({
   const {properties,id,profile} = useData();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const tenantId = sessionStorage.getItem("id");
   const [images, setImages] = useState<(string)[]>([]);
   const [myProperties,setMyProperties] = useState<PropertyData[]>([]);
 
-  const tenant = profile?.find((p) => p.id === tenantId);
-  const owner = profile?.find((p) => p.id === myProperties.find((p) => p.owner_id === myProperties.find((p) => p.buyer_id === tenantId)?.owner_id)?.owner_id);
+  const tenant = profile?.find((p) => p.id === id);
+  const owner = profile?.find((p) => p.id === myProperties.find((p) => p.owner_id === myProperties.find((p) => p.buyer_id === id)?.owner_id)?.owner_id);
 
     const form = useForm<ComplaintFormValues>({
     resolver: zodResolver(complaintSchema),
@@ -141,11 +140,19 @@ const AddComplaintModal = ({
 
 
    const onSubmit = async (data: ComplaintFormValues) => {
+    if (!id) {
+    toast({
+      title: "Authentication Error",
+      description: "User not logged in",
+      variant: "destructive",
+    });
+    return;
+  }
     setIsSubmitting(true);
 
     const { error } = await supabase.from("complaints").insert([
       {
-        tenant_id: tenantId,
+        tenant_id: id,
         owner_id: properties.find((p) => p.id === data.property_id)?.owner_id || null,
         property_id: data.property_id,
         category: data.category,
@@ -166,6 +173,7 @@ const AddComplaintModal = ({
         description: error.message,
         variant: "destructive",
       });
+      console.log(error)
     } else {
       toast({
         title: "Complaint Submitted",

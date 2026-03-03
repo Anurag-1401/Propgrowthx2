@@ -413,9 +413,9 @@ const TenantComplaints = () => {
             <SidebarItem icon={FileText}   label="Complaints"    sidebarOpen active onClick={() => setSidebarOpen(false)} />
           </nav>
           <div className="px-2 py-4 border-t border-gray-200 space-y-1">
-            <SidebarItem icon={User}       label="Profile"  sidebarOpen onClick={() => mobileGoTo('/profile')} />
+            <SidebarItem icon={User}       label="Profile"  sidebarOpen onClick={() => mobileGoTo(`/profile/${id}`)} />
             <SidebarItem icon={HelpCircle} label="Support"  sidebarOpen onClick={() => mobileGoTo('/dashboard/tenant/support')} />
-            <SidebarItem icon={Settings}   label="Settings" sidebarOpen onClick={() => setSidebarOpen(false)} />
+            <SidebarItem icon={Settings}   label="Settings" sidebarOpen  onClick={()=>navigate('/property-settings')} />
             <SidebarItem icon={LogOut}     label="Logout"   sidebarOpen onClick={() => { sessionStorage.clear(); window.location.href = '/'; }} />
           </div>
         </aside>
@@ -469,9 +469,9 @@ const TenantComplaints = () => {
 
           {/* Bottom Menu */}
           <div className="px-2 py-4 border-t border-gray-200 space-y-2">
-            <SidebarItem icon={User}       label="Profile"  sidebarOpen={sidebarOpen} onClick={() => navigate('/profile')} />
-            <SidebarItem icon={HelpCircle} label="Support"  sidebarOpen={sidebarOpen} onClick={() => navigate('/contact')} />
-            <SidebarItem icon={Settings}   label="Settings" sidebarOpen={sidebarOpen} />
+            <SidebarItem icon={User}       label="Profile"  sidebarOpen={sidebarOpen} onClick={() => navigate(`/profile/${id}`)} />
+            <SidebarItem icon={HelpCircle} label="Support"  sidebarOpen={sidebarOpen} onClick={() => navigate('/dashboard/tenant/support')} />
+            <SidebarItem icon={Settings}   label="Settings" sidebarOpen={sidebarOpen}  onClick={()=>navigate('/property-settings')}/>
             <SidebarItem icon={LogOut}     label="Logout"   sidebarOpen={sidebarOpen} onClick={() => { sessionStorage.clear(); window.location.href = '/'; }} />
           </div>
         </aside>
