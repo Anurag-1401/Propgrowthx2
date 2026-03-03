@@ -156,7 +156,7 @@ const Properties = () => {
             <SidebarItem icon={FileText}   label="Complaints"    sidebarOpen onClick={() => { navigate('/dashboard/tenant/complaints'); setSidebarOpen(false); }} />
           </nav>
           <div className="px-2 py-4 border-t border-gray-200 space-y-1">
-            <SidebarItem icon={User}       label="Profile"  sidebarOpen onClick={() => { navigate('/profile'); setSidebarOpen(false); }} />
+            <SidebarItem icon={User}       label="Profile"  sidebarOpen onClick={() => {navigate(`/profile/${id}`); setSidebarOpen(false); }} />
             <SidebarItem icon={HelpCircle} label="Support"  sidebarOpen onClick={() => { navigate('/dashboard/tenant/support'); setSidebarOpen(false); }} />
             <SidebarItem icon={Settings}   label="Settings" sidebarOpen onClick={() => setSidebarOpen(false)} />
             <SidebarItem icon={LogOut}     label="Logout"   sidebarOpen onClick={() => { sessionStorage.clear(); window.location.href = '/'; }} />
@@ -203,7 +203,7 @@ const Properties = () => {
             <SidebarItem icon={FileText}   label="Complaints"    sidebarOpen={sidebarOpen} onClick={() => navigate('/dashboard/tenant/complaints')} />
           </nav>
           <div className="px-2 py-4 border-t border-gray-200 space-y-2">
-            <SidebarItem icon={User}       label="Profile"  sidebarOpen={sidebarOpen} onClick={() => navigate('/profile')} />
+            <SidebarItem icon={User}       label="Profile"  sidebarOpen={sidebarOpen} onClick={() => navigate(`/profile/${id}`)} />
             <SidebarItem icon={HelpCircle} label="Support"  sidebarOpen={sidebarOpen} onClick={() => navigate('/dashboard/tenant/support')} />
             <SidebarItem icon={Settings}   label="Settings" sidebarOpen={sidebarOpen} />
             <SidebarItem icon={LogOut}     label="Logout"   sidebarOpen={sidebarOpen} onClick={() => { sessionStorage.clear(); window.location.href = '/'; }} />
